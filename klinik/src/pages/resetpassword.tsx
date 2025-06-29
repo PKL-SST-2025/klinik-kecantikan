@@ -17,12 +17,13 @@ const ResetPassword = () => {
     e.preventDefault();
     const data = formData();
     
+    // Validasi form
     if (!data.email || !data.password || !data.confirmPassword) {
       toast.error('Semua field harus diisi');
       return;
     }
 
-    if (!data.email.includes('@')) {
+    if (!data.email.includes('@') || !data.email.includes('.')) {
       toast.error('Format email tidak valid');
       return;
     }
@@ -39,12 +40,46 @@ const ResetPassword = () => {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Password berhasil direset!');
+    try {
+      // 1. Ambil data user yang terdaftar dari localStorage
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      
+      // 2. Cari user berdasarkan email
+      const userIndex = registeredUsers.findIndex((user: any) => user.email === data.email);
+      
+      if (userIndex === -1) {
+        toast.error('Email tidak terdaftar di sistem');
+        return;
+      }
+
+      // 3. Update password user (tanpa hashing)
+      const updatedUser = {
+        ...registeredUsers[userIndex],
+        password: data.password // Simpan password plain text (hanya untuk demo)
+      };
+
+      // 4. Update daftar user
+      const updatedUsers = [...registeredUsers];
+      updatedUsers[userIndex] = updatedUser;
+
+      // 5. Simpan kembali ke localStorage
+      localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+
+      // 6. Jika user sedang login, force logout
+      const currentUser = JSON.parse(localStorage.getItem('clinic_user') || 'null');
+      if (currentUser && currentUser.email === data.email) {
+        localStorage.removeItem('clinic_user');
+        localStorage.removeItem('isAuthenticated');
+      }
+
+      toast.success('Password berhasil direset! Silakan login dengan password baru');
       navigate('/login');
-    }, 2000);
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error('Terjadi kesalahan saat reset password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateField = (field: string, value: string) => {
@@ -53,7 +88,7 @@ const ResetPassword = () => {
 
   return (
     <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Image - Konsisten */}
+      {/* Background Image */}
       <div 
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -61,10 +96,10 @@ const ResetPassword = () => {
         }}
       />
       
-      {/* Gradient Overlay - Konsisten */}
+      {/* Gradient Overlay */}
       <div class="absolute inset-0 bg-gradient-to-br from-purple-300/40 via-pink-200/30 to-blue-300/40" />
       
-      {/* Floating Bubbles - Konsisten */}
+      {/* Floating Bubbles */}
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
         <div class="absolute top-40 right-32 w-24 h-24 bg-purple-300/20 rounded-full blur-lg animate-bounce" />
@@ -75,7 +110,7 @@ const ResetPassword = () => {
       {/* Main Content */}
       <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-md">
-          {/* Welcome Title - Warna Teks Konsisten */}
+          {/* Title Section */}
           <div class="text-center mb-8">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">
               Reset Password
@@ -83,17 +118,17 @@ const ResetPassword = () => {
             <p class="text-gray-600 text-lg">Buat password baru untuk akun Anda</p>
           </div>
 
-          {/* Glassmorphism Card - Desain Konsisten dengan padding dan shadow */}
+          {/* Form Card */}
           <div class="backdrop-blur-md bg-white/70 border border-white/30 rounded-3xl py-10 px-8 shadow-xl text-gray-800">
             <div class="text-center mb-6">
-              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Password Baru</h2> {/* Teks gelap */}
-              <p class="text-gray-700 text-sm"> {/* Teks gelap */}
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Password Baru</h2>
+              <p class="text-gray-700 text-sm">
                 Masukkan email dan password baru Anda
               </p>
             </div>
 
             <form onSubmit={handleSubmit} class="space-y-4">
-              {/* Email Input - Desain Konsisten */}
+              {/* Email Input */}
               <div>
                 <input
                   type="email"
@@ -101,10 +136,11 @@ const ResetPassword = () => {
                   value={formData().email}
                   onInput={(e) => updateField('email', e.currentTarget.value)}
                   class="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
+                  required
                 />
               </div>
 
-              {/* Password Input - Desain Konsisten */}
+              {/* New Password Input */}
               <div class="relative">
                 <input
                   type={showPassword() ? 'text' : 'password'}
@@ -112,11 +148,14 @@ const ResetPassword = () => {
                   value={formData().password}
                   onInput={(e) => updateField('password', e.currentTarget.value)}
                   class="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
+                  required
+                  minlength="6"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword())}
                   class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                  aria-label={showPassword() ? "Sembunyikan password" : "Tampilkan password"}
                 >
                   {showPassword() ? (
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +170,7 @@ const ResetPassword = () => {
                 </button>
               </div>
 
-              {/* Confirm Password Input - Desain Konsisten */}
+              {/* Confirm Password Input */}
               <div class="relative">
                 <input
                   type={showConfirmPassword() ? 'text' : 'password'}
@@ -139,11 +178,14 @@ const ResetPassword = () => {
                   value={formData().confirmPassword}
                   onInput={(e) => updateField('confirmPassword', e.currentTarget.value)}
                   class="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
+                  required
+                  minlength="6"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword())}
                   class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                  aria-label={showConfirmPassword() ? "Sembunyikan password" : "Tampilkan password"}
                 >
                   {showConfirmPassword() ? (
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,10 +200,10 @@ const ResetPassword = () => {
                 </button>
               </div>
 
-              {/* Password Requirements - Desain Konsisten */}
+              {/* Password Requirements */}
               <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-                <p class="text-gray-700 text-xs mb-1">Password harus:</p> {/* Teks gelap */}
-                <ul class="text-gray-600 text-xs space-y-1"> {/* Teks gelap */}
+                <p class="text-gray-700 text-xs mb-1">Password harus:</p>
+                <ul class="text-gray-600 text-xs space-y-1">
                   <li class="flex items-center">
                     <span class={`w-2 h-2 rounded-full mr-2 ${formData().password.length >= 6 ? 'bg-green-400' : 'bg-gray-300'}`}></span>
                     Minimal 6 karakter
@@ -173,7 +215,7 @@ const ResetPassword = () => {
                 </ul>
               </div>
 
-              {/* Reset Button - Desain Konsisten (warna ungu) */}
+              {/* Reset Button */}
               <button
                 type="submit"
                 disabled={isLoading()}
@@ -182,7 +224,7 @@ const ResetPassword = () => {
                 {isLoading() ? 'Mereset Password...' : 'Reset Password'}
               </button>
 
-              {/* Back to Login - Desain Konsisten */}
+              {/* Back to Login Link */}
               <div class="text-center">
                 <a 
                   href="/login" 

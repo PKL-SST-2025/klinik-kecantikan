@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { toast } from 'solid-toast';
+import { A } from '@solidjs/router';
 // Import useAuth Hook
 import { useAuth } from '../App'; // Asumsi App.tsx ada di direktori yang sama atau bisa disesuaikan
 
@@ -129,12 +130,12 @@ const Login = () => {
 
               {/* Forgot Password Link */}
               <div class="text-right">
-                <a
+                <A
                   href="/forgot-password"
                   class="text-gray-600 hover:text-gray-800 text-sm hover:underline focus:outline-none focus:underline"
                 >
                   Lupa Password?
-                </a>
+                </A>
               </div>
 
               {/* Demo Credentials */}
