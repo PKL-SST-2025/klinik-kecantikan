@@ -34,11 +34,36 @@ const Register = () => {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    // --- Logika Penyimpanan Data Registrasi ke localStorage ---
+    try {
+      let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+
+      // Periksa apakah email sudah terdaftar
+      const isEmailRegistered = registeredUsers.some((user: any) => user.email === data.email);
+      if (isEmailRegistered) {
+        toast.error('Email ini sudah terdaftar. Silakan login atau gunakan email lain.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Simpan data user baru (catatan: password disimpan plain-text untuk demo, tidak disarankan di produksi)
+      const newUser = {
+        name: data.name,
+        position: data.position,
+        email: data.email,
+        password: data.password // Di aplikasi nyata, hash password sebelum menyimpan!
+      };
+      registeredUsers.push(newUser);
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+
       toast.success('Registrasi berhasil! Silakan verifikasi kode yang dikirim');
-      navigate('/verify-code');
-    }, 1500);
+      navigate('/verify-code'); // Arahkan ke halaman verifikasi kode
+    } catch (error) {
+      console.error("Error saving registration data:", error);
+      toast.error('Terjadi kesalahan saat registrasi.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateField = (field: string, value: string) => {
@@ -60,7 +85,6 @@ const Register = () => {
 
       {/* Floating Bubbles - Disesuaikan agar lebih menyatu dan visualnya lebih halus */}
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Menggunakan warna yang lebih pucat dan blur yang lebih kuat */}
         <div class="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
         <div class="absolute top-40 right-32 w-24 h-24 bg-purple-300/20 rounded-full blur-lg animate-bounce" />
         <div class="absolute bottom-32 left-40 w-40 h-40 bg-pink-300/15 rounded-full blur-2xl animate-pulse" />
@@ -129,7 +153,6 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={isLoading()}
-                // Menggunakan warna ungu spesifik dari kode hex
                 class="w-full py-3 bg-[#7F66CB] text-white font-semibold rounded-xl hover:bg-[#6a54b3] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {isLoading() ? 'Mendaftar...' : 'Register'}
@@ -139,7 +162,6 @@ const Register = () => {
                 <span class="text-gray-600">Sudah punya akun? </span>
                 <a
                   href="/login"
-                  // Menggunakan warna ungu spesifik dari kode hex
                   class="text-[#7F66CB] font-semibold hover:underline focus:outline-none focus:underline hover:text-[#6a54b3]"
                 >
                   Login

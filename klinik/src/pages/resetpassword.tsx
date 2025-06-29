@@ -52,8 +52,8 @@ const ResetPassword = () => {
   };
 
   return (
-    <div class="min-h-screen relative overflow-hidden">
-      {/* Background Image */}
+    <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      {/* Background Image - Konsisten */}
       <div 
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -61,10 +61,10 @@ const ResetPassword = () => {
         }}
       />
       
-      {/* Gradient Overlay */}
-      <div class="absolute inset-0 bg-gradient-to-br from-purple-400/30 via-pink-300/20 to-blue-400/30" />
+      {/* Gradient Overlay - Konsisten */}
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-300/40 via-pink-200/30 to-blue-300/40" />
       
-      {/* Floating Bubbles */}
+      {/* Floating Bubbles - Konsisten */}
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
         <div class="absolute top-40 right-32 w-24 h-24 bg-purple-300/20 rounded-full blur-lg animate-bounce" />
@@ -75,48 +75,48 @@ const ResetPassword = () => {
       {/* Main Content */}
       <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-md">
-          {/* Welcome Title */}
+          {/* Welcome Title - Warna Teks Konsisten */}
           <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2 drop-shadow-lg">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
               Reset Password
             </h1>
-            <p class="text-white/80 text-lg">Buat password baru untuk akun Anda</p>
+            <p class="text-gray-600 text-lg">Buat password baru untuk akun Anda</p>
           </div>
 
-          {/* Glassmorphism Card */}
-          <div class="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 shadow-2xl">
+          {/* Glassmorphism Card - Desain Konsisten dengan padding dan shadow */}
+          <div class="backdrop-blur-md bg-white/70 border border-white/30 rounded-3xl py-10 px-8 shadow-xl text-gray-800">
             <div class="text-center mb-6">
-              <h2 class="text-2xl font-semibold text-white mb-2">Password Baru</h2>
-              <p class="text-white/80 text-sm">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Password Baru</h2> {/* Teks gelap */}
+              <p class="text-gray-700 text-sm"> {/* Teks gelap */}
                 Masukkan email dan password baru Anda
               </p>
             </div>
 
             <form onSubmit={handleSubmit} class="space-y-4">
-              {/* Email Input */}
+              {/* Email Input - Desain Konsisten */}
               <div>
                 <input
                   type="email"
                   placeholder="Email"
                   value={formData().email}
                   onInput={(e) => updateField('email', e.currentTarget.value)}
-                  class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent backdrop-blur-sm"
+                  class="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
                 />
               </div>
 
-              {/* Password Input */}
+              {/* Password Input - Desain Konsisten */}
               <div class="relative">
                 <input
                   type={showPassword() ? 'text' : 'password'}
                   placeholder="Password Baru"
                   value={formData().password}
                   onInput={(e) => updateField('password', e.currentTarget.value)}
-                  class="w-full px-4 py-3 pr-12 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent backdrop-blur-sm"
+                  class="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword())}
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white focus:outline-none"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none"
                 >
                   {showPassword() ? (
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,19 +131,19 @@ const ResetPassword = () => {
                 </button>
               </div>
 
-              {/* Confirm Password Input */}
+              {/* Confirm Password Input - Desain Konsisten */}
               <div class="relative">
                 <input
                   type={showConfirmPassword() ? 'text' : 'password'}
                   placeholder="Konfirmasi Password Baru"
                   value={formData().confirmPassword}
                   onInput={(e) => updateField('confirmPassword', e.currentTarget.value)}
-                  class="w-full px-4 py-3 pr-12 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent backdrop-blur-sm"
+                  class="w-full px-4 py-3 pr-12 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword())}
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white focus:outline-none"
+                  class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none"
                 >
                   {showConfirmPassword() ? (
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,35 +158,35 @@ const ResetPassword = () => {
                 </button>
               </div>
 
-              {/* Password Requirements */}
-              <div class="bg-white/10 border border-white/20 rounded-lg p-3">
-                <p class="text-white/80 text-xs mb-1">Password harus:</p>
-                <ul class="text-white/70 text-xs space-y-1">
+              {/* Password Requirements - Desain Konsisten */}
+              <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+                <p class="text-gray-700 text-xs mb-1">Password harus:</p> {/* Teks gelap */}
+                <ul class="text-gray-600 text-xs space-y-1"> {/* Teks gelap */}
                   <li class="flex items-center">
-                    <span class={`w-2 h-2 rounded-full mr-2 ${formData().password.length >= 6 ? 'bg-green-400' : 'bg-white/30'}`}></span>
+                    <span class={`w-2 h-2 rounded-full mr-2 ${formData().password.length >= 6 ? 'bg-green-400' : 'bg-gray-300'}`}></span>
                     Minimal 6 karakter
                   </li>
                   <li class="flex items-center">
-                    <span class={`w-2 h-2 rounded-full mr-2 ${formData().password === formData().confirmPassword && formData().password.length > 0 ? 'bg-green-400' : 'bg-white/30'}`}></span>
+                    <span class={`w-2 h-2 rounded-full mr-2 ${formData().password === formData().confirmPassword && formData().password.length > 0 ? 'bg-green-400' : 'bg-gray-300'}`}></span>
                     Password harus sama
                   </li>
                 </ul>
               </div>
 
-              {/* Reset Button */}
+              {/* Reset Button - Desain Konsisten (warna ungu) */}
               <button
                 type="submit"
                 disabled={isLoading()}
-                class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                class="w-full py-3 bg-[#7F66CB] text-white font-semibold rounded-xl hover:bg-[#6a54b3] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg focus:outline-none focus:ring-2 focus:ring-[#7F66CB] focus:ring-offset-2 focus:ring-offset-transparent"
               >
                 {isLoading() ? 'Mereset Password...' : 'Reset Password'}
               </button>
 
-              {/* Back to Login */}
+              {/* Back to Login - Desain Konsisten */}
               <div class="text-center">
                 <a 
                   href="/login" 
-                  class="text-white/80 hover:text-white text-sm hover:underline focus:outline-none focus:underline"
+                  class="text-gray-600 hover:text-gray-800 text-sm hover:underline focus:outline-none focus:underline"
                 >
                   Kembali ke Login
                 </a>

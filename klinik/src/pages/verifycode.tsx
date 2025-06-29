@@ -54,6 +54,8 @@ const VerifyCode = () => {
       return;
     }
 
+    // --- PENTING: Untuk aplikasi nyata, kode verifikasi ini harus divalidasi di backend.
+    // Ini hanya simulasi.
     if (verificationCode !== '123456') { // Ganti dengan logika verifikasi kode asli Anda
       toast.error('Kode verifikasi salah');
       return;
@@ -65,7 +67,8 @@ const VerifyCode = () => {
     setTimeout(() => {
       setIsLoading(false);
       toast.success('Verifikasi berhasil!');
-      navigate('/login');
+      // >>>>>> Ini adalah bagian yang memastikan navigasi ke /login <<<<<<
+      navigate('/login'); 
     }, 1500);
   };
 
@@ -169,7 +172,7 @@ const VerifyCode = () => {
                     Kirim Ulang Kode
                   </button>
                 ) : (
-                  <span class="text-gray-600 text-sm"> {/* Teks gelap */}
+                  <span class="text-gray-600 text-sm"> 
                     Kirim ulang dalam {formatTime(timeLeft())}
                   </span>
                 )}

@@ -36,8 +36,8 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div class="min-h-screen relative overflow-hidden">
-      {/* Background Image */}
+    <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      {/* Background Image - Konsisten dengan Register & Login */}
       <div 
         class="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
@@ -45,10 +45,10 @@ const ForgotPassword = () => {
         }}
       />
       
-      {/* Gradient Overlay */}
-      <div class="absolute inset-0 bg-gradient-to-br from-purple-400/30 via-pink-300/20 to-blue-400/30" />
+      {/* Gradient Overlay - Konsisten dengan Register & Login */}
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-300/40 via-pink-200/30 to-blue-300/40" />
       
-      {/* Floating Bubbles */}
+      {/* Floating Bubbles - Konsisten dengan Register & Login */}
       <div class="absolute inset-0 overflow-hidden pointer-events-none">
         <div class="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
         <div class="absolute top-40 right-32 w-24 h-24 bg-purple-300/20 rounded-full blur-lg animate-bounce" />
@@ -59,12 +59,12 @@ const ForgotPassword = () => {
       {/* Main Content */}
       <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-md">
-          {/* Welcome Title */}
+          {/* Welcome Title - Warna text-gray-800 seperti Register & Login */}
           <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white mb-2 drop-shadow-lg">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
               Lupa Password?
             </h1>
-            <p class="text-white/80 text-lg">
+            <p class="text-gray-600 text-lg">
               {isEmailSent() 
                 ? 'Link reset telah dikirim'
                 : 'Masukkan email untuk reset password'
@@ -72,13 +72,13 @@ const ForgotPassword = () => {
             </p>
           </div>
 
-          {/* Glassmorphism Card */}
-          <div class="backdrop-blur-xl bg-white/20 border border-white/30 rounded-3xl p-8 shadow-2xl">
+          {/* Glassmorphism Card - Konsisten dengan Register & Login, dengan padding disesuaikan */}
+          <div class="backdrop-blur-md bg-white/70 border border-white/30 rounded-3xl py-10 px-8 shadow-2xl text-gray-800">
             {!isEmailSent() ? (
               <>
                 <div class="text-center mb-6">
-                  <h2 class="text-2xl font-semibold text-white mb-2">Reset Password</h2>
-                  <p class="text-white/80 text-sm">
+                  <h2 class="text-2xl font-semibold text-gray-800 mb-2">Reset Password</h2> {/* Teks gelap */}
+                  <p class="text-gray-700 text-sm"> {/* Teks gelap */}
                     Kami akan mengirimkan link reset password ke email Anda
                   </p>
                 </div>
@@ -91,24 +91,24 @@ const ForgotPassword = () => {
                       placeholder="Masukkan email Anda"
                       value={email()}
                       onInput={(e) => setEmail(e.currentTarget.value)}
-                      class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent backdrop-blur-sm"
+                      class="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F66CB]"
                     />
                   </div>
 
-                  {/* Reset Button */}
+                  {/* Reset Button - Menggunakan warna ungu spesifik */}
                   <button
                     type="submit"
                     disabled={isLoading()}
-                    class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    class="w-full py-3 bg-[#7F66CB] text-white font-semibold rounded-xl hover:bg-[#6a54b3] focus:outline-none focus:ring-2 focus:ring-[#7F66CB] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   >
                     {isLoading() ? 'Mengirim...' : 'Reset Password'}
                   </button>
 
-                  {/* Back to Login */}
+                  {/* Back to Login - Teks gelap dan link warna ungu */}
                   <div class="text-center">
                     <a 
                       href="/login" 
-                      class="text-white/80 hover:text-white text-sm hover:underline focus:outline-none focus:underline"
+                      class="text-gray-600 hover:text-gray-800 text-sm hover:underline focus:outline-none focus:underline"
                     >
                       Kembali ke Login
                     </a>
@@ -129,31 +129,31 @@ const ForgotPassword = () => {
                   </div>
 
                   <div>
-                    <h2 class="text-2xl font-semibold text-white mb-2">Email Terkirim!</h2>
-                    <p class="text-white/80 text-sm mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-2">Email Terkirim!</h2> {/* Teks gelap */}
+                    <p class="text-gray-700 text-sm mb-4"> {/* Teks gelap */}
                       Kami telah mengirimkan link reset password ke <br />
                       <span class="font-semibold">{email()}</span>
                     </p>
-                    <p class="text-white/60 text-xs">
+                    <p class="text-gray-600 text-xs"> {/* Teks gelap */}
                       Periksa folder spam jika email tidak ditemukan di inbox
                     </p>
                   </div>
 
-                  {/* Demo Link */}
-                  <div class="bg-white/10 border border-white/20 rounded-lg p-3">
-                    <p class="text-white/80 text-xs text-center mb-2">Demo Mode:</p>
+                  {/* Demo Link - Warna ungu spesifik */}
+                  <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+                    <p class="text-gray-700 text-xs text-center mb-2">Demo Mode:</p>
                     <a 
                       href="/reset-password"
-                      class="text-blue-300 hover:text-blue-200 text-sm hover:underline focus:outline-none focus:underline font-medium"
+                      class="text-[#7F66CB] hover:text-[#6a54b3] text-sm hover:underline focus:outline-none focus:underline font-medium"
                     >
                       Klik disini untuk simulasi reset password
                     </a>
                   </div>
 
-                  {/* Back to Login Button */}
+                  {/* Back to Login Button - Menggunakan warna ungu spesifik */}
                   <button
                     onClick={handleBackToLogin}
-                    class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-lg"
+                    class="w-full py-3 bg-[#7F66CB] text-white font-semibold rounded-xl hover:bg-[#6a54b3] focus:outline-none focus:ring-2 focus:ring-[#7F66CB] focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-lg"
                   >
                     Kembali ke Login
                   </button>

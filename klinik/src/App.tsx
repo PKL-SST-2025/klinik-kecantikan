@@ -12,10 +12,11 @@ import Layout from './pages/layout';
 
 // Auth Context Types
 interface User {
-  id: string;
-  nama: string;
+  id: string; // Bisa email, atau ID unik lainnya
+  name: string; // Diubah dari 'nama'
   email: string;
-  posisi: 'admin' | 'resepsionis' | 'dokter';
+  position: 'admin' | 'resepsionis' | 'dokter'; // Diubah dari 'posisi'
+  password?: string; // Menambahkan password untuk verifikasi login, meskipun di nyata tidak disarankan
 }
 
 interface AuthContextType {
@@ -38,51 +39,38 @@ const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
     const savedUser = localStorage.getItem('clinic_user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsedUser: User = JSON.parse(savedUser);
+        // Pastikan tidak menyimpan password di state user jika tidak benar-benar diperlukan
+        const userWithoutPassword = { ...parsedUser };
+        delete userWithoutPassword.password; 
+        setUser(userWithoutPassword);
       } catch (error) {
+        console.error("Failed to parse user from localStorage:", error);
         localStorage.removeItem('clinic_user');
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('userEmail');
       }
     }
   });
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call - replace with actual authentication logic
     return new Promise((resolve) => {
       setTimeout(() => {
-        // Demo credentials - replace with actual authentication
-        if (email === 'admin@clinic.com' && password === 'admin123') {
-          const userData: User = {
-            id: '1',
-            nama: 'Administrator',
-            email: email,
-            posisi: 'admin'
+        const registeredUsers: User[] = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+        const foundUser = registeredUsers.find(
+          (u) => u.email === email && u.password === password
+        );
+
+        if (foundUser) {
+          // Buat objek user tanpa password untuk disimpan di context
+          const userDataForContext: User = {
+            id: foundUser.email, // Menggunakan email sebagai ID untuk demo
+            name: foundUser.name,
+            email: foundUser.email,
+            position: foundUser.position
           };
-          setUser(userData);
-          localStorage.setItem('clinic_user', JSON.stringify(userData));
-          localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userEmail', email);
-          resolve(true);
-        } else if (email === 'dokter@clinic.com' && password === 'dokter123') {
-          const userData: User = {
-            id: '2',
-            nama: 'Dr. John Doe',
-            email: email,
-            posisi: 'dokter'
-          };
-          setUser(userData);
-          localStorage.setItem('clinic_user', JSON.stringify(userData));
-          localStorage.setItem('isAuthenticated', 'true');
-          localStorage.setItem('userEmail', email);
-          resolve(true);
-        } else if (email === 'resepsionis@clinic.com' && password === 'resepsionis123') {
-          const userData: User = {
-            id: '3',
-            nama: 'Jane Smith',
-            email: email,
-            posisi: 'resepsionis'
-          };
-          setUser(userData);
-          localStorage.setItem('clinic_user', JSON.stringify(userData));
+          setUser(userDataForContext);
+          localStorage.setItem('clinic_user', JSON.stringify(userDataForContext)); // Simpan user tanpa password
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userEmail', email);
           resolve(true);
@@ -98,6 +86,9 @@ const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
     localStorage.removeItem('clinic_user');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
+    // Menggunakan window.location.href untuk hard redirect ke login setelah logout
+    // agar state Solid.js router benar-benar bersih.
+    window.location.href = '/login'; 
   };
 
   const isAuthenticated = () => user() !== null;
@@ -132,6 +123,7 @@ const ProtectedRoute: Component<{ children: JSX.Element }> = (props) => {
   
   if (!auth.isAuthenticated()) {
     // Redirect to login if not authenticated
+    // Menggunakan window.location.href untuk memastikan redirect yang bersih
     window.location.href = '/login';
     return null;
   }
@@ -145,6 +137,7 @@ const PublicRoute: Component<{ children: JSX.Element }> = (props) => {
   
   if (auth.isAuthenticated()) {
     // Redirect to dashboard if already authenticated
+    // Menggunakan window.location.href untuk memastikan redirect yang bersih
     window.location.href = '/dashboard';
     return null;
   }
@@ -152,7 +145,7 @@ const PublicRoute: Component<{ children: JSX.Element }> = (props) => {
   return <>{props.children}</>;
 };
 
-// Page Components
+// Page Components (tetap sama)
 const RegisterPage = () => (
   <PublicRoute>
     <Register />
@@ -347,7 +340,7 @@ function App() {
             }
             return null;
           }} />
-         
+          
           {/* 404 Route */}
           <Route path="*" component={NotFoundPage} />
         </Router>
