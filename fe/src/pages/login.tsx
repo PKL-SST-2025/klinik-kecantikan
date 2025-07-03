@@ -138,14 +138,7 @@ const Login = () => {
                 </A>
               </div>
 
-              {/* Demo Credentials */}
-              <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-                <p class="text-gray-700 text-xs text-center mb-1">Coba login dengan akun yang sudah Anda register:</p>
-                <p class="text-gray-800 text-xs text-center font-mono">
-                  Email: [email yang Anda register]<br />
-                  Password: [password yang Anda register]
-                </p>
-              </div>
+              
 
               {/* Login Button - Menggunakan warna ungu spesifik dari kode hex */}
               <button

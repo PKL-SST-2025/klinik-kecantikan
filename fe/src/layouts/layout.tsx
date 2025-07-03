@@ -5,7 +5,7 @@ import { toast } from 'solid-toast';
 import { JSX } from 'solid-js';
 
 // Ensure this path is correct relative to where Layout.tsx is located
-import BgDashboard from '../assets/bgdashboard.png'; 
+import BgDashboard from '../icons/bgdashboard.png'; 
 
 const Layout = (props: { children: JSX.Element }) => {
   const navigate = useNavigate();

@@ -142,12 +142,7 @@ const VerifyCode = () => {
                 ))}
               </div>
 
-              {/* Hint for Demo */}
-              <div class="text-center mt-2">
-                <p class="text-gray-600 text-sm"> {/* Teks gelap */}
-                  Hint: Gunakan kode <span class="font-mono font-bold">123456</span> untuk demo
-                </p>
-              </div>
+             
 
               {/* Verify Button */}
               <button
