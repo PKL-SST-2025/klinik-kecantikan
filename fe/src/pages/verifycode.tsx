@@ -1,5 +1,5 @@
 import { createSignal, createEffect } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
+import { useNavigate, A } from '@solidjs/router';
 import { toast } from 'solid-toast';
 import BgDashboard from '.././icons/bglogin.png';
 const VerifyCode = () => {
@@ -180,12 +180,12 @@ const VerifyCode = () => {
 
               {/* Back to Register Link */}
               <div class="text-center mt-4">
-                <a
+                <A
                   href="/register"
                   class="text-gray-600 hover:text-gray-800 text-sm hover:underline focus:outline-none focus:underline" 
                 >
                   Kembali ke Register
-                </a>
+                </A>
               </div>
             </form>
           </div>

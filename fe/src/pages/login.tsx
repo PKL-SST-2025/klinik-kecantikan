@@ -159,12 +159,12 @@ const Login = () => {
               {/* Register Link */}
               <div class="text-center mt-6">
                 <span class="text-gray-600">Belum punya akun? </span>
-                <a
+                <A
                   href="/register"
                   class="text-[#7F66CB] font-semibold hover:underline focus:outline-none focus:underline hover:text-[#6a54b3]"
                 >
                   Register
-                </a>
+                </A>
               </div>
             </form>
           </div>

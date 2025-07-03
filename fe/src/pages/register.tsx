@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
+import { useNavigate, A } from '@solidjs/router';
 import { toast } from 'solid-toast';
 import BgDashboard from '.././icons/bglogin.png'; // Pastikan path ini sesuai dengan struktur proyek Anda
 const Register = () => {
@@ -160,12 +160,12 @@ const Register = () => {
 
               <div class="text-center mt-6">
                 <span class="text-gray-600">Sudah punya akun? </span>
-                <a
+                <A
                   href="/login"
                   class="text-[#7F66CB] font-semibold hover:underline focus:outline-none focus:underline hover:text-[#6a54b3]"
                 >
                   Login
-                </a>
+                </A>
               </div>
             </form>
           </div>

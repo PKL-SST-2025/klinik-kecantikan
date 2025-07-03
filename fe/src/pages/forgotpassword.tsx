@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { useNavigate } from '@solidjs/router';
+import { useNavigate, A } from '@solidjs/router';
 import { toast } from 'solid-toast';
 import BgDashboard from '.././icons/bglogin.png';
 const ForgotPassword = () => {
@@ -106,12 +106,12 @@ const ForgotPassword = () => {
 
                   {/* Back to Login - Teks gelap dan link warna ungu */}
                   <div class="text-center">
-                    <a 
+                    <A 
                       href="/login" 
                       class="text-gray-600 hover:text-gray-800 text-sm hover:underline focus:outline-none focus:underline"
                     >
                       Kembali ke Login
-                    </a>
+                    </A>
                   </div>
                 </form>
               </>
