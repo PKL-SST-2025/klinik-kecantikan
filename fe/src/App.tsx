@@ -9,6 +9,7 @@ import Login from './pages/login';
 import ForgotPassword from './pages/forgotpassword';
 import ResetPassword from './pages/resetpassword';
 import Layout from './layouts/layout' // Ini adalah Layout.tsx Anda
+import ProdukTreatmentPage from './pages/produk'; // Pastikan path ini sesuai dengan struktur proyek Anda
 
 // Auth Context Types
 interface User {
