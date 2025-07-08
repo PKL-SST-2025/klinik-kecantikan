@@ -3,6 +3,7 @@ import AgGridSolid from 'solid-ag-grid';
 import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
+import '../styles/ag-custom-purple.css'; // Import custom styles for AG Grid
 import { Plus, Edit, Trash2, Package, Clock, DollarSign, Hash } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
 

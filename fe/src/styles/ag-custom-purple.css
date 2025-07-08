@@ -1,0 +1,48 @@
+/* Warna header tabel */
+.ag-theme-alpine .ag-header {
+  background: #c084fc; /* warna ungu soft */
+  color: white;
+  font-weight: 600;
+}
+
+/* Warna border tabel */
+.ag-theme-alpine .ag-root-wrapper {
+  border: 1px solid #d8b4fe;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+/* Warna hover baris */
+.ag-theme-alpine .ag-row-hover {
+  background-color: #f3e8ff !important; /* ungu muda hover */
+}
+
+/* Warna baris ganjil/genap (striped effect optional) */
+.ag-theme-alpine .ag-row:nth-child(odd) {
+  background-color: #faf5ff;
+}
+.ag-theme-alpine .ag-row:nth-child(even) {
+  background-color: #fdf4ff;
+}
+
+/* Warna teks dan border sel */
+.ag-theme-alpine .ag-cell {
+  color: #4b0082; /* ungu gelap */
+  border-color: #e9d5ff;
+}
+
+/* Warna pagination */
+.ag-theme-alpine .ag-paging-panel {
+  background-color: #ede9fe;
+  color: #6b21a8;
+}
+
+/* Tombol pagination aktif */
+.ag-theme-alpine .ag-paging-button[aria-disabled="false"]:hover {
+  background-color: #e0e7ff;
+}
+.ag-theme-alpine .ag-cell, 
+.ag-theme-alpine .ag-row, 
+.ag-theme-alpine .ag-header-cell {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
