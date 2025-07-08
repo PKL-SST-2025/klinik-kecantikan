@@ -6,6 +6,9 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import '../styles/ag-custom-purple.css'; // Import custom styles for AG Grid
 import { Plus, Edit, Trash2, Package, Clock, DollarSign, Hash } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
+import { addNotification, removeNotificationByKeyword } from '../stores/notificationStores';// Import notification store
+import dayjs from 'dayjs';
+import { notifications, setNotifications } from '../stores/notificationStores';
 
 // Types (tetap sama)
 interface Produk {
@@ -89,6 +92,8 @@ const ProdukTreatmentPage: Component = () => {
     localStorage.setItem('treatmentList', JSON.stringify(treatmentList()));
   });
 
+  
+
   // Effect to size columns when gridApi is available or tab changes (tetap sama)
   createEffect(() => {
     console.log('createEffect (gridApi): Checking gridApi for sizeColumnsToFit...');
@@ -100,7 +105,21 @@ const ProdukTreatmentPage: Component = () => {
       console.log('createEffect (gridApi): gridApi not yet available.');
     }
   });
+  // Effect to notify when stok produk menipis
+createEffect(() => {
+  if (activeTab() === 'produk' && isDataLoaded()) {
+    const lowStokProduk = produkList().filter(p => p.stok <= 5);
+    const existingMessages = new Set(notifications().map(n => n.message));
 
+    lowStokProduk.forEach((produk) => {
+      const message = `Stok produk "${produk.nama}" menipis (${produk.stok} pcs)`;
+      if (!existingMessages.has(message)) {
+        addNotification(message);
+        console.log('Notification added:', message);
+      }
+    });
+  }
+});
   // ... (handleActionClick, produkColumns, treatmentColumns tetap sama) ...
   const handleActionClick = (action: string, id: number) => {
     if (action === 'edit') {
@@ -274,7 +293,12 @@ const ProdukTreatmentPage: Component = () => {
         setProdukList(prev => prev.map(p => p.id === newProduk.id ? newProduk : p));
         toast.success('Produk berhasil diupdate');
         console.log('Produk updated:', newProduk);
-      } else {
+      } 
+       if (newProduk.stok > 5) {
+    removeNotificationByKeyword(`Stok produk "${newProduk.nama}" menipis`);
+  }
+
+      else {
         setProdukList(prev => [...prev, newProduk]);
         toast.success('Produk berhasil ditambahkan');
         console.log('Produk added:', newProduk);

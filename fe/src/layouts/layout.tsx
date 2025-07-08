@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from '@solidjs/router';
 import { Search, Bell, User, LogOut, Settings, Menu, X, Home, Users, Calendar, UserCheck, Stethoscope, FileText, BarChart3, Package } from 'lucide-solid';
 import { toast } from 'solid-toast';
 import { JSX } from 'solid-js';
-
+import { notifications } from '../stores/notificationStores';
 // Ensure this path is correct relative to where Layout.tsx is located
 import BgDashboard from '../icons/bgdashboard.png'; 
 
@@ -15,11 +15,6 @@ const Layout = (props: { children: JSX.Element }) => {
   const [sidebarExpanded, setSidebarExpanded] = createSignal(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = createSignal(false);
   const [searchQuery, setSearchQuery] = createSignal('');
-  const [notifications] = createSignal([
-    { id: 1, message: 'Appointment baru dari John Doe', time: '5 menit lalu', read: false },
-    { id: 2, message: 'Pembayaran berhasil untuk treatment facial', time: '10 menit lalu', read: false },
-    { id: 3, message: 'Reminder: Check-up rutin besok', time: '1 jam lalu', read: true },
-  ]);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = createSignal(false);
 
   // Check authentication on mount
@@ -212,29 +207,25 @@ const Layout = (props: { children: JSX.Element }) => {
                     </button>
 
                     {/* Notification Dropdown */}
-                    <Show when={notificationDropdownOpen()}>
-                      <div class="absolute right-0 mt-2 w-80 bg-white/95 rounded-lg shadow-xl border border-gray-200 z-50 backdrop-blur-md">
-                        <div class="p-4 border-b border-gray-200">
-                          <h3 class="font-semibold text-gray-800">Notifikasi</h3>
+              <Show when={notificationDropdownOpen()}>
+                <div class="absolute right-0 mt-2 w-72 bg-white border rounded-xl shadow-xl z-50">
+                  <div class="p-4 border-b font-semibold text-gray-700">Notifikasi</div>
+                  <div class="max-h-80 overflow-y-auto divide-y">
+                    <For each={notifications()}>
+                      {(notif) => (
+                        <div class={`p-3 ${notif.read ? 'bg-white' : 'bg-purple-50'}`}>
+                          <p class="text-sm text-gray-800">{notif.message}</p>
+                          <p class="text-xs text-gray-500 mt-1">{notif.time}</p>
                         </div>
-                        <div class="max-h-96 overflow-y-auto">
-                          <For each={notifications()}>
-                            {(notification) => (
-                              <div class={`p-4 border-b border-gray-100 hover:bg-gray-50/50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`}>
-                                <p class="text-sm text-gray-800 mb-1">{notification.message}</p>
-                                <p class="text-xs text-gray-500">{notification.time}</p>
-                              </div>
-                            )}
-                          </For>
-                        </div>
-                        <div class="p-3 border-t border-gray-200">
-                          <button class="text-sm text-[#7F66CB] hover:text-[#5D4AA6] font-medium">
-                            Lihat semua notifikasi
-                          </button>
-                        </div>
-                      </div>
+                      )}
+                    </For>
+                    <Show when={notifications().length === 0}>
+                      <div class="p-4 text-sm text-gray-500">Tidak ada notifikasi.</div>
                     </Show>
                   </div>
+                </div>
+              </Show>
+            </div>
 
                   {/* Profile */}
                   <div class="relative">
