@@ -1,3 +1,4 @@
+//src/layouts/Layout.tsx
 import { createSignal, createEffect, Show, For } from 'solid-js';
 import { useNavigate, useLocation } from '@solidjs/router';
 import { Search, Bell, User, LogOut, Settings, Menu, X, Home, Users, Calendar, UserCheck, Stethoscope, FileText, BarChart3, Package } from 'lucide-solid';

@@ -1,3 +1,4 @@
+//src/App.tsx
 import { Router, Route } from '@solidjs/router';
 import { createSignal, createContext, useContext, Component, JSX, onMount } from 'solid-js';
 import { Toaster } from 'solid-toast';
@@ -251,11 +252,7 @@ const DokterPage = () => (
 const ProdukPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Produk & Treatment</h1>
-        <p class="text-gray-600">Halaman produk dan treatment akan ditampilkan di sini.</p>
-      </div>
+      <ProdukTreatmentPage />
     </Layout>
   </ProtectedRoute>
 );
