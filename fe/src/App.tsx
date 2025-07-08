@@ -11,7 +11,7 @@ import ForgotPassword from './pages/forgotpassword';
 import ResetPassword from './pages/resetpassword';
 import Layout from './layouts/layout' // Ini adalah Layout.tsx Anda
 import ProdukTreatmentPage from './pages/produk'; // Pastikan path ini sesuai dengan struktur proyek Anda
-
+import StaffPage from './pages/Dokter';
 // Auth Context Types
 interface User {
   id: string; 
@@ -240,11 +240,7 @@ const RegistrasiPage = () => (
 const DokterPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Data Dokter</h1>
-        <p class="text-gray-600">Halaman data dokter akan ditampilkan di sini.</p>
-      </div>
+      <StaffPage />
     </Layout>
   </ProtectedRoute>
 );
