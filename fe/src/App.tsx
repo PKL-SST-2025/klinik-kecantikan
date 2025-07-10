@@ -12,6 +12,10 @@ import ResetPassword from './pages/resetpassword';
 import Layout from './layouts/layout' // Ini adalah Layout.tsx Anda
 import ProdukTreatmentPage from './pages/produk'; // Pastikan path ini sesuai dengan struktur proyek Anda
 import StaffPage from './pages/Dokter';
+import BookingPage from './pages/registrasi';
+import PasienDataPage from './pages/pasien';
+import CheckoutPage from './pages/pembayaran'
+import AppointmentSchedulePage from './pages/jadwal'; // Pastikan path ini sesuai dengan struktur proyek Anda
 // Auth Context Types
 interface User {
   id: string; 
@@ -204,11 +208,7 @@ const DashboardPage = () => (
 const PasienPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Data Pasien</h1>
-        <p class="text-gray-600">Halaman data pasien akan ditampilkan di sini.</p>
-      </div>
+      <PasienDataPage />
     </Layout>
   </ProtectedRoute>
 );
@@ -216,11 +216,7 @@ const PasienPage = () => (
 const JadwalPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Jadwal Appointment</h1>
-        <p class="text-gray-600">Halaman jadwal appointment akan ditampilkan di sini.</p>
-      </div>
+     <AppointmentSchedulePage />
     </Layout>
   </ProtectedRoute>
 );
@@ -228,11 +224,7 @@ const JadwalPage = () => (
 const RegistrasiPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Registrasi Pasien</h1>
-        <p class="text-gray-600">Halaman registrasi pasien baru akan ditampilkan di sini.</p>
-      </div>
+      <BookingPage />
     </Layout>
   </ProtectedRoute>
 );
@@ -268,11 +260,7 @@ const StatistikPage = () => (
 const PembayaranPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Pembayaran</h1>
-        <p class="text-gray-600">Halaman pembayaran akan ditampilkan di sini.</p>
-      </div>
+      < CheckoutPage />
     </Layout>
   </ProtectedRoute>
 );

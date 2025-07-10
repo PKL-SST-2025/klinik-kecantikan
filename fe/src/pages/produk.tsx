@@ -9,21 +9,7 @@ import toast, { Toaster } from 'solid-toast';
 import { addNotification, removeNotificationByKeyword } from '../stores/notificationStores';// Import notification store
 import dayjs from 'dayjs';
 import { notifications, setNotifications } from '../stores/notificationStores';
-
-// Types (tetap sama)
-interface Produk {
-  id: number;
-  nama: string;
-  stok: number;
-  harga: number;
-}
-
-interface Treatment {
-  id: number;
-  nama: string;
-  estimasiWaktu: number; // dalam menit
-  harga: number;
-}
+import type { Produk, Treatment } from '../types/database'; // Import types for Produk and Treatment
 
 type TabType = 'produk' | 'treatment';
 
