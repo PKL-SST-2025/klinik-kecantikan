@@ -1,19 +1,14 @@
-import { Component, createSignal, createMemo, onMount, createEffect, Show, For } from 'solid-js';
-import toast, { Toaster } from 'solid-toast';
-import dayjs from 'dayjs'; // Pastikan dayjs terinstal: npm install dayjs
-import isBetween from 'dayjs/plugin/isBetween'; // Plugin untuk cek rentang waktu
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'; // Plugin untuk isSameOrBefore
-import 'dayjs/locale/id'; // Opsional: untuk format tanggal/waktu Indonesia
-import { Pasien, Dokter, Treatment, Appointment } from '../types/database'; // Pastikan tipe-tipe ini sesuai dengan yang ada di database.ts
+import { createSignal, createEffect, onMount, Component, createMemo } from 'solid-js';
+import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import 'dayjs/locale/id'; 
+import toast, { Toaster } from 'solid-toast'; 
+import { Pasien, Dokter, Treatment, Appointment, DailySchedule } from '../types/database'; 
 
-dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
-dayjs.locale('id'); // Set locale ke Indonesia
-
-
+dayjs.locale('id'); 
 // --- Icons (from lucide-solid) ---
-import { User, Phone, Mail, Calendar, Clock, Stethoscope, Handshake, Info, Tag, FlaskConical, CircleAlert, Pill, History, Palette, MessageCircle, MapPin, IdCard, UserRoundCog, HeartHandshake, Lightbulb, CheckCheck } from 'lucide-solid';
-
+import { User, Phone, Mail, Calendar, Clock, Stethoscope, Tag, Pill, MessageCircle, MapPin, IdCard, Activity, AlertTriangle, Users, Heart, MessageSquare, HeartHandshake, CheckCheck } from 'lucide-solid';
 const BookingPage: Component = () => {
     // --- State Management ---
     const [pasienList, setPasienList] = createSignal<Pasien[]>([]);
@@ -28,27 +23,12 @@ const BookingPage: Component = () => {
     // Form states for Booking & Pasien Details
     const [formData, setFormData] = createSignal({
         // Pasien Data (for new patient)
-        namaLengkap: '',
-        noTelepon: '',
-        email: '',
-        tanggalLahir: '',
-        jenisKelamin: 'Wanita' as 'Pria' | 'Wanita',
-        noIdentitas: '',
-        alamatLengkap: '',
-        riwayatAlergi: '',
-        kondisiMedis: '',
-        obatKonsumsi: '',
-        riwayatTreatment: '',
-        keluhanUtama: '',
-        kontakDaruratNama: '',
-        kontakDaruratHubungan: '',
-        NomerKontakDarurat: '',
-        preferensiKomunikasi: [] as string[],
-        setujuData: true,
-
+        namaLengkap: '', noTelepon: '', email: '', tanggalLahir: '', jenisKelamin: 'Wanita' as 'Pria' | 'Wanita', noIdentitas: '', alamatLengkap: '',
+        riwayatAlergi: '', kondisiMedis: '', obatKonsumsi: '', riwayatTreatment: '', keluhanUtama: '', kontakDaruratNama: '',
+        kontakDaruratHubungan: '', NomerKontakDarurat: '', preferensiKomunikasi: [] as string[], setujuData: true,
         // Appointment Data
         tanggalAppointment: '',
-        selectedTreatmentIds: [] as string[],
+        selectedTreatmentIds: [] as string[], // Keep as string[] for HTML select values
         selectedDokterId: null as number | null,
         selectedWaktuMulai: '', // 'HH:MM'
     });
@@ -73,7 +53,7 @@ const BookingPage: Component = () => {
         setTreatmentList(prev => {
             const analysisTreatmentExists = prev.some(t => t.nama === 'Analisis Kulit Awal & Konsultasi');
             if (!analysisTreatmentExists) {
-                const newId = Math.max(0, ...prev.map(t => t.id)) + 1; // Generate new ID
+                const newId = prev.length > 0 ? Math.max(...prev.map(t => t.id)) + 1 : 1; // Generate new ID, starting from 1 if empty
                 return [...prev, { id: newId, nama: 'Analisis Kulit Awal & Konsultasi', estimasiWaktu: 30, harga: 0 }];
             }
             return prev;
@@ -85,13 +65,14 @@ const BookingPage: Component = () => {
     createEffect(() => {
         localStorage.setItem('pasienList', JSON.stringify(pasienList()));
     });
+
     createEffect(() => {
         localStorage.setItem('appointmentList', JSON.stringify(appointmentList()));
     });
 
     // --- Computed Values (createMemo) ---
-
     // Get the initial skin analysis treatment object
+
     const initialSkinAnalysisTreatment = createMemo(() => {
         return treatmentList().find(t => t.nama === 'Analisis Kulit Awal & Konsultasi');
     });
@@ -109,56 +90,35 @@ const BookingPage: Component = () => {
             }
         });
 
-        // Jika pasien baru, pastikan durasi analisis awal ditambahkan jika belum dipilih
+
+
+        // Jika pasien baru atau pasien lama belum pernah analisis, pastikan durasi analisis awal ditambahkan jika belum dipilih
         const analysisTreatment = initialSkinAnalysisTreatment();
-        if (isNewPatient() && analysisTreatment && !selectedIdsAsNumbers.includes(analysisTreatment.id)) {
+        const patientRequiresAnalysis = isNewPatient() ||
+            (selectedPasienId() && !pasienList().find(p => p.id === selectedPasienId())?.hasInitialSkinAnalysis);
+        if (patientRequiresAnalysis && analysisTreatment && !selectedIdsAsNumbers.includes(analysisTreatment.id)) {
             duration += analysisTreatment.estimasiWaktu;
         }
         return duration;
     });
-
-    // Filter Dokter by Specialization
-    const availableDokterForTreatments = createMemo(() => {
-        const selectedTreatmentsAsNumbers = formData().selectedTreatmentIds.map(Number);
-        if (selectedTreatmentsAsNumbers.length === 0 && !isNewPatient()) return []; // No treatments selected for existing patient
-
-        const allDokter = dokterList();
-
-        // If new patient, assume initial skin analysis. Any doctor specialized in it.
-        // --- MENJADI ---
-        if (isNewPatient()) {
-            const analysisTreatment = initialSkinAnalysisTreatment();
-            if (analysisTreatment) {
-                const analysisId = analysisTreatment.id;
-                return allDokter.filter(d => d.spesialisasi.includes(analysisId));
-            }
-            return []; // Kembalikan array kosong jika analisis tidak ada
-        }
-
-        // For existing patients or subsequent treatments
-        return allDokter.filter(dokter => {
-            return selectedTreatmentsAsNumbers.every(treatmentId => dokter.spesialisasi.includes(treatmentId));
-        });
-    });
-
     // --- Helper Functions ---
+    // Utility to map English day names from dayjs to Indonesian day names used in DailySchedule
+    const getIndonesianDayName = (englishDay: string): DailySchedule['day'] | null => {
+        const dayMap: { [key: string]: DailySchedule['day'] } = {
+            'Sunday': 'Minggu',
+            'Monday': 'Senin',
+            'Tuesday': 'Selasa',
+            'Wednesday': 'Rabu',
+            'Thursday': 'Kamis',
+            'Friday': 'Jumat',
+            'Saturday': 'Sabtu',
+        };
+        return dayMap[englishDay] || null;
+    };
 
-    // Function to parse doctor's schedule string (e.g., "Senin,Rabu (09:00-17:00); Jumat (10:00-16:00)")
-    const parseDoctorSchedule = (schedule: string, targetDay: string) => {
-        const rules = schedule.split(';');
-        for (const rule of rules) {
-            const trimmedRule = rule.trim();
-            const [daysPart, timePart] = trimmedRule.split(' (');
-            if (daysPart && timePart) {
-                const days = daysPart.split(',').map(d => d.trim());
-                const [startTimeStr, endTimeStr] = timePart.replace(')', '').split('-');
-
-                if (days.includes(targetDay)) {
-                    return { startTime: startTimeStr, endTime: endTimeStr };
-                }
-            }
-        }
-        return null; // Doctor not available on this day or invalid schedule format
+    // Function to get doctor's schedule for a specific day from structured DailySchedule array
+    const getDoctorScheduleForDay = (schedules: DailySchedule[], targetDay: DailySchedule['day']) => {
+        return schedules.find(s => s.day === targetDay) || null;
     };
 
     // Generate and validate available time slots
@@ -175,12 +135,17 @@ const BookingPage: Component = () => {
 
         const selectedDokter = allDokter.find(d => d.id === dokterId);
         if (!selectedDokter) return [];
+        const englishTargetDayName = dayjs(tanggalAppointment).format('dddd'); // e.g., "Monday"
+        const indonesianTargetDayName = getIndonesianDayName(englishTargetDayName);
+        if (!indonesianTargetDayName) {
+            console.log(`Hari "${englishTargetDayName}" tidak dikenali atau tidak ada dalam jadwal dokter.`);
+            return [];
+        }
 
-        const targetDayName = dayjs(tanggalAppointment).format('dddd'); // e.g., "Senin", "Selasa"
-        const schedule = parseDoctorSchedule(selectedDokter.jadwal, targetDayName);
-
+        // Get the doctor's schedule using the new structured format
+        const schedule = getDoctorScheduleForDay(selectedDokter.jadwal, indonesianTargetDayName);
         if (!schedule) {
-            console.log(`Dokter ${selectedDokter.nama} tidak ada jadwal pada ${targetDayName}.`);
+            console.log(`Dokter ${selectedDokter.nama} tidak ada jadwal pada ${indonesianTargetDayName}.`);
             return [];
         }
 
@@ -188,12 +153,12 @@ const BookingPage: Component = () => {
         const slotInterval = 30; // Generate slots every 30 minutes
 
         let currentTime = dayjs(`${tanggalAppointment} ${schedule.startTime}`);
+
         const workEnd = dayjs(`${tanggalAppointment} ${schedule.endTime}`);
 
         while (currentTime.add(durationInMinutes, 'minute').isSameOrBefore(workEnd)) {
             const potentialAppointmentStart = currentTime;
             const potentialAppointmentEnd = currentTime.add(durationInMinutes, 'minute');
-
             const hasConflict = allAppointments.some(appt => {
                 if (appt.dokterId === dokterId && appt.tanggal === tanggalAppointment) {
                     const existingStart = dayjs(`${appt.tanggal} ${appt.waktuMulai}`);
@@ -208,7 +173,9 @@ const BookingPage: Component = () => {
                 return false;
             });
 
-            if (!hasConflict) {
+            const now = dayjs(); // Get current time
+            // Only add slot if it's in the future and has no conflict
+            if (potentialAppointmentStart.isAfter(now) && !hasConflict) {
                 slots.push(potentialAppointmentStart.format('HH:mm'));
             }
             currentTime = currentTime.add(slotInterval, 'minute');
@@ -217,7 +184,6 @@ const BookingPage: Component = () => {
     };
 
     // --- Handlers ---
-
     // Update available time slots whenever relevant data changes
     createEffect(() => {
         const tanggal = formData().tanggalAppointment;
@@ -236,7 +202,6 @@ const BookingPage: Component = () => {
 
     const handlePasienTypeChange = (e: Event) => {
         setIsNewPatient((e.target as HTMLInputElement).value === 'new');
-        // Reset patient-related form data when switching type
         setFormData(prev => ({
             ...prev,
             namaLengkap: '', noTelepon: '', email: '', tanggalLahir: '', jenisKelamin: 'Wanita', alamatLengkap: '',
@@ -252,34 +217,40 @@ const BookingPage: Component = () => {
         setSelectedPasienId(id);
         const pasien = pasienList().find(p => p.id === id);
         if (pasien) {
-            // Pre-fill some data if needed, or just use selectedPasienId
-            setFormData(prev => ({
-                ...prev,
-                namaLengkap: pasien.namaLengkap,
-                noTelepon: pasien.noTelepon,
-                email: pasien.email,
-                tanggalLahir: pasien.tanggalLahir,
-                jenisKelamin: pasien.jenisKelamin,
-                alamatLengkap: pasien.alamatLengkap,
-                riwayatAlergi: pasien.riwayatAlergi,
-                kondisiMedis: pasien.kondisiMedis,
-                obatKonsumsi: pasien.obatKonsumsi,
-                riwayatTreatment: pasien.riwayatTreatment,
-                keluhanUtama: pasien.keluhanUtama,
-                noIdentitas: pasien.noIdentitas || '',
-                kontakDaruratNama: pasien.kontakDaruratNama || '',
-                kontakDaruratHubungan: pasien.kontakDaruratHubungan || '',
-                preferensiKomunikasi: pasien.preferensiKomunikasi || [],
-                setujuData: pasien.setujuData,
-                selectedTreatmentIds: pasien.hasInitialSkinAnalysis
-                    ? []
-                    : (initialSkinAnalysisTreatment() ? [String(initialSkinAnalysisTreatment()!.id)] : []), // If no analysis done, pre-select it
-            }));
+            setFormData(prev => {
+                const updatedFormData = {
+                    ...prev,
+                    namaLengkap: pasien.namaLengkap,
+                    noTelepon: pasien.noTelepon,
+                    email: pasien.email,
+                    tanggalLahir: pasien.tanggalLahir,
+                    jenisKelamin: pasien.jenisKelamin,
+                    alamatLengkap: pasien.alamatLengkap,
+                    riwayatAlergi: pasien.riwayatAlergi,
+                    kondisiMedis: pasien.kondisiMedis,
+                    obatKonsumsi: pasien.obatKonsumsi,
+                    riwayatTreatment: pasien.riwayatTreatment,
+                    keluhanUtama: pasien.keluhanUtama,
+                    noIdentitas: pasien.noIdentitas || '',
+                    kontakDaruratNama: pasien.kontakDaruratNama || '',
+                    kontakDaruratHubungan: pasien.kontakDaruratHubungan || '',
+                    NomerKontakDarurat: pasien.NomerKontakDarurat || '',
+                    preferensiKomunikasi: pasien.preferensiKomunikasi || [],
+                    setujuData: pasien.setujuData,
+                };
+                // If existing patient has NOT had initial analysis, pre-select it
+                if (!pasien.hasInitialSkinAnalysis && initialSkinAnalysisTreatment()) {
+                    updatedFormData.selectedTreatmentIds = [String(initialSkinAnalysisTreatment()!.id)];
+                } else {
+                    updatedFormData.selectedTreatmentIds = []; // Clear other selections for existing patient initially
+                }
+                return updatedFormData;
+            });
 
             // Automatically proceed to next step if patient selected
             setCurrentStep(2);
         } else {
-            setCurrentStep(1);
+            setCurrentStep(1); // Stay on step 1 if no valid patient is selected
         }
     };
 
@@ -289,9 +260,7 @@ const BookingPage: Component = () => {
 
     const handleMultiSelectChange = (field: string, e: Event) => {
         const target = e.target as HTMLSelectElement;
-        const selectedValues = Array.from(target.selectedOptions).map(option => {
-            return field === 'selectedTreatmentIds' ? parseInt(option.value) : option.value;
-        });
+        const selectedValues = Array.from(target.selectedOptions).map(option => option.value); // Keep as string for form
         setFormData(prev => ({ ...prev, [field]: selectedValues }));
     };
 
@@ -302,21 +271,19 @@ const BookingPage: Component = () => {
             toast.error('Nama, Nomor Telepon, dan Tanggal Lahir pasien baru wajib diisi.');
             return;
         }
+
         setCurrentStep(2); // Proceed to booking details
     };
 
     const handleSubmitBooking = (e: Event) => {
         e.preventDefault();
-
         // Final validation for booking details
         if (!formData().tanggalAppointment || !formData().selectedWaktuMulai || !formData().selectedDokterId || totalAppointmentDuration() <= 0) {
             toast.error('Tanggal, Waktu, Dokter, dan Treatment wajib dipilih.');
             return;
         }
-
         let currentPasienId: number;
         let requiresInitialAnalysis = false;
-
         if (isNewPatient()) {
             const newPasien: Pasien = {
                 id: Date.now(), // Simple ID generation
@@ -329,7 +296,7 @@ const BookingPage: Component = () => {
                 riwayatAlergi: formData().riwayatAlergi,
                 kondisiMedis: formData().kondisiMedis,
                 obatKonsumsi: formData().obatKonsumsi,
-                riwayatTreatment: formData().riwayatTreatment,
+                riwayatTreatment:formData().riwayatTreatment,
                 keluhanUtama: formData().keluhanUtama,
                 noIdentitas: formData().noIdentitas,
                 NomerKontakDarurat: formData().NomerKontakDarurat,
@@ -341,37 +308,39 @@ const BookingPage: Component = () => {
                 skinAnalyses: [],
                 treatmentProgresses: [],
             };
+
             setPasienList(prev => [...prev, newPasien]);
             currentPasienId = newPasien.id;
-            requiresInitialAnalysis = true; // New patient always starts with analysis
+            requiresInitialAnalysis = true; // New patient always starts with analysis for tracking
             toast.success('Pasien baru berhasil didaftarkan!');
         } else {
             if (!selectedPasienId()) {
                 toast.error('Silakan pilih pasien yang sudah ada.');
                 return;
             }
+
             currentPasienId = selectedPasienId()!;
             const pasien = pasienList().find(p => p.id === currentPasienId);
             if (pasien && !pasien.hasInitialSkinAnalysis) {
-                requiresInitialAnalysis = true;
+                requiresInitialAnalysis = true; // Existing patient needs analysis
             }
         }
 
         const appointmentStartTime = dayjs(`${formData().tanggalAppointment} ${formData().selectedWaktuMulai}`);
         const appointmentEndTime = appointmentStartTime.add(totalAppointmentDuration(), 'minute');
+        // Prepare treatment IDs for the appointment - CONVERT TO NUMBER[]
+        let treatmentsForAppointment = formData().selectedTreatmentIds.map(Number);
+        const analysisTreatment = initialSkinAnalysisTreatment();
 
-        // Prepare treatment IDs for the appointment - CONVERT BACK TO NUMBER FOR APPOINTMENT OBJECT
-        let treatmentsForAppointment = formData().selectedTreatmentIds.map(Number); // <-- Konversi ke number[]
-        if (requiresInitialAnalysis && initialSkinAnalysisTreatment()) {
-            const analysisId = initialSkinAnalysisTreatment()!.id;
+        if (requiresInitialAnalysis && analysisTreatment) {
+            const analysisId = analysisTreatment.id;
             if (!treatmentsForAppointment.includes(analysisId)) {
                 treatmentsForAppointment.unshift(analysisId); // Add at the beginning
             }
         }
+
         // Remove duplicates if any
         treatmentsForAppointment = Array.from(new Set(treatmentsForAppointment));
-
-
         const newAppointment: Appointment = {
             id: Date.now(),
             pasienId: currentPasienId,
@@ -381,12 +350,18 @@ const BookingPage: Component = () => {
             waktuMulai: formData().selectedWaktuMulai,
             waktuSelesai: appointmentEndTime.format('HH:mm'),
             status: 'booked',
-            isInitialSkinAnalysis: requiresInitialAnalysis,
+            isInitialSkinAnalysis: requiresInitialAnalysis && treatmentsForAppointment.includes(analysisTreatment?.id!), // True if analysis is part of THIS appointment
         };
-
         setAppointmentList(prev => [...prev, newAppointment]);
         toast.success('Appointment berhasil dibooking!');
         console.log('New Appointment:', newAppointment);
+
+        // If the appointment includes the initial skin analysis, update the patient's record
+        if (newAppointment.isInitialSkinAnalysis) {
+            setPasienList(prev => prev.map(p =>
+                p.id === currentPasienId ? { ...p, hasInitialSkinAnalysis: true } : p
+            ));
+        }
 
         // Reset form for next booking
         resetForm();
@@ -398,8 +373,7 @@ const BookingPage: Component = () => {
         setFormData({
             namaLengkap: '', noTelepon: '', email: '', tanggalLahir: '', jenisKelamin: 'Wanita', noIdentitas: '', alamatLengkap: '',
             riwayatAlergi: '', kondisiMedis: '', obatKonsumsi: '', riwayatTreatment: '', keluhanUtama: '',
-            kontakDaruratNama: '', kontakDaruratHubungan: '', NomerKontakDarurat: '', preferensiKomunikasi: [],
-            setujuData: true,
+            kontakDaruratNama: '', kontakDaruratHubungan: '', NomerKontakDarurat: '', preferensiKomunikasi: [],setujuData: true,
             tanggalAppointment: '', selectedTreatmentIds: [], selectedDokterId: null, selectedWaktuMulai: '',
         });
         setAvailableTimeSlots([]);
@@ -417,453 +391,586 @@ const BookingPage: Component = () => {
             </div>
 
             {/* Main Content Card */}
-            <div class="bg-white/70 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl p-6 md:p-8">
+            <div class="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 md:p-12">
                 {/* Step Indicators */}
-                <div class="flex items-center justify-center mb-8">
-                    <div class="flex flex-col items-center">
-                        <div class={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${currentStep() >= 1 ? 'bg-purple-600' : 'bg-gray-400'}`}>1</div>
-                        <span class="text-sm mt-2 text-gray-700">Info Pasien</span>
-                    </div>
-                    <div class="flex-grow border-t-2 border-dashed mx-4 mt-[-20px]" classList={{ 'border-purple-300': currentStep() >= 2, 'border-gray-300': currentStep() < 2 }}></div>
-                    <div class="flex flex-col items-center">
-                        <div class={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${currentStep() >= 2 ? 'bg-purple-600' : 'bg-gray-400'}`}>2</div>
-                        <span class="text-sm mt-2 text-gray-700">Detail Booking</span>
+                <div class="flex items-center justify-center mb-12">
+                    <div class="flex items-center w-full max-w-md">
+                        <div class="flex flex-col items-center">
+                            <div class={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white transition-all duration-300 ${currentStep() >= 1
+                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 shadow-lg scale-110'
+                                    : 'bg-gray-400'
+                                }`}>
+                                1
+                            </div>
+                            <span class="text-sm mt-3 text-gray-700 font-medium">Info Pasien</span>
+                        </div>
+                        <div class={`flex-1 h-0.5 mx-8 transition-all duration-300 ${currentStep() >= 2
+                                ? 'bg-gradient-to-r from-purple-600 to-blue-600'
+                                : 'bg-gray-300'
+                            }`}></div>
+                        <div class="flex flex-col items-center">
+                            <div class={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white transition-all duration-300 ${currentStep() >= 2
+                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 shadow-lg scale-110'
+                                    : 'bg-gray-400'
+                                }`}>
+                                2
+                            </div>
+                            <span class="text-sm mt-3 text-gray-700 font-medium">Detail Booking</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* --- Step 1: Pasien Information --- */}
-                <form onSubmit={handleSubmitPasienInfo} classList={{ 'block': currentStep() === 1, 'hidden': currentStep() !== 1 }}>
-                    <h2 class="text-2xl font-semibold text-gray-900 mb-6">Langkah 1: Informasi Pasien</h2>
+                <form
+                    onSubmit={handleSubmitPasienInfo}
+                    class={currentStep() === 1 ? 'block' : 'hidden'}
+                >
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
+                                <span class="text-white font-bold">1</span>
+                            </div>
+                            Informasi Pasien
+                        </h2>
+                        <p class="text-gray-600">Lengkapi data pasien dengan teliti untuk memastikan pelayanan yang optimal</p>
+                    </div>
 
                     {/* Pasien Type Selection */}
-                    <div class="mb-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Pasien</label>
-                        <div class="flex gap-4">
-                            <label class="inline-flex items-center">
+                    <div class="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
+                        <label class="block text-base font-semibold text-gray-800 mb-4">Jenis Pasien</label>
+                        <div class="flex gap-6">
+                            <label class="flex items-center p-4 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-all duration-200 flex-1">
                                 <input
                                     type="radio"
-                                    name="pasienType"
+                                    name="patientType"
                                     value="new"
                                     checked={isNewPatient()}
                                     onInput={handlePasienTypeChange}
-                                    class="form-radio text-purple-600"
+                                    class="w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-500"
                                 />
-                                <span class="ml-2 text-gray-800">Pasien Baru</span>
+                                <div class="ml-4">
+                                    <span class="text-gray-900 font-medium">Pasien Baru</span>
+                                    <p class="text-sm text-gray-600">Kunjungan pertama ke klinik</p>
+                                </div>
                             </label>
-                            <label class="inline-flex items-center">
+                            <label class="flex items-center p-4 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-all duration-200 flex-1">
                                 <input
                                     type="radio"
-                                    name="pasienType"
+                                    name="patientType"
                                     value="existing"
                                     checked={!isNewPatient()}
                                     onInput={handlePasienTypeChange}
-                                    class="form-radio text-purple-600"
+                                    class="w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-500"
                                 />
-                                <span class="ml-2 text-gray-800">Pasien Lama</span>
+                                <div class="ml-4">
+                                    <span class="text-gray-900 font-medium">Pasien Lama</span>
+                                    <p class="text-sm text-gray-600">Sudah terdaftar sebelumnya</p>
+                                </div>
                             </label>
                         </div>
                     </div>
 
                     {/* Existing Pasien Select */}
                     {!isNewPatient() && (
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <User size={16} /> Pilih Pasien Lama
+                        <div class="mb-8 p-6 bg-blue-50 rounded-2xl border border-blue-200">
+                            <label class="block text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <User size={20} class="text-blue-600" />
+                                Pilih Pasien Lama
                             </label>
                             <select
                                 value={selectedPasienId() || ''}
                                 onInput={handleExistingPasienSelect}
-                                class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                                class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white"
                                 required={!isNewPatient()}
                             >
                                 <option value="" disabled>-- Pilih Pasien --</option>
                                 {pasienList().map(pasien => (
-                                    <option value={pasien.id}>{pasien.namaLengkap} ({pasien.noTelepon})</option>
+                                    <option value={pasien.id}>
+                                        {pasien.namaLengkap} ({pasien.noTelepon})
+                                    </option>
                                 ))}
                             </select>
                         </div>
                     )}
 
-                    {/* New Patient Details (conditional rendering) */}
-                    <div classList={{ 'block': isNewPatient(), 'hidden': !isNewPatient() }}>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            {/* Nama Lengkap */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <User size={16} /> Nama Lengkap <span class="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData().namaLengkap}
-                                    onInput={(e) => handleFormChange('namaLengkap', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    required={isNewPatient()}
-                                />
-                            </div>
-                            {/* Nomor Telepon */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <Phone size={16} /> Nomor Telepon <span class="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={formData().noTelepon}
-                                    onInput={(e) => handleFormChange('noTelepon', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    required={isNewPatient()}
-                                    placeholder="Contoh: 081234567890"
-                                />
-                            </div>
-                            {/* Email */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <Mail size={16} /> Email
-                                </label>
-                                <input
-                                    type="email"
-                                    value={formData().email}
-                                    onInput={(e) => handleFormChange('email', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                />
-                            </div>
-                            {/* Tanggal Lahir */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <Calendar size={16} /> Tanggal Lahir <span class="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData().tanggalLahir}
-                                    onInput={(e) => handleFormChange('tanggalLahir', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    required={isNewPatient()}
-                                />
+                    {/* New Patient Details */}
+                    <div class={isNewPatient() ? 'block' : 'hidden'}>
+                        {/* Basic Information */}
+                        <div class="mb-8">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <User size={20} class="text-purple-600" />
+                                Data Pribadi
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Nama Lengkap */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <User size={16} class="text-gray-500" />
+                                        Nama Lengkap <span class="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        value={formData().namaLengkap}
+                                        onInput={(e) => handleFormChange('namaLengkap', e.target.value)}
+                                        required={isNewPatient()}
+                                        placeholder="Masukkan nama lengkap"
+                                    />
+                                </div>
+
+                                {/* Nomor Telepon */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Phone size={16} class="text-gray-500" />
+                                        Nomor Telepon <span class="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={formData().noTelepon}
+                                        onInput={(e) => handleFormChange('noTelepon', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        required={isNewPatient()}
+                                        placeholder="081234567890"
+                                    />
+                                </div>
+
+                                {/* Email */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Mail size={16} class="text-gray-500" />
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={formData().email}
+                                        onInput={(e) => handleFormChange('email', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        placeholder="contoh@email.com"
+                                    />
+                                </div>
+
+                                {/* Tanggal Lahir */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Calendar size={16} class="text-gray-500" />
+                                        Tanggal Lahir <span class="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData().tanggalLahir}
+                                        onInput={(e) => handleFormChange('tanggalLahir', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        required={isNewPatient()}
+                                    />
+                                </div>
+
+                                {/* Jenis Kelamin */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">
+                                        Jenis Kelamin <span class="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        value={formData().jenisKelamin}
+                                        onInput={(e) => handleFormChange('jenisKelamin', e.target.value)}
+                                        required={isNewPatient()}
+                                    >
+                                        <option value="Wanita">Wanita</option>
+                                        <option value="Pria">Pria</option>
+                                    </select>
+                                </div>
+
+                                {/* No Identitas */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <IdCard size={16} class="text-gray-500" />
+                                        Nomor Identitas (KTP/SIM/Paspor)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData().noIdentitas}
+                                        onInput={(e) => handleFormChange('noIdentitas', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        placeholder="3201234567890001"
+                                    />
+                                </div>
                             </div>
 
-                            {/* No identitas */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <IdCard size={16} /> Nomor Identitas (KTP/SIM)
+                            {/* Alamat Lengkap */}
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <MapPin size={16} class="text-gray-500" />
+                                    Alamat Lengkap
                                 </label>
-                                <input
-                                    type="text"
-                                    value={formData().noIdentitas}
-                                    onInput={(e) => handleFormChange('noIdentitas', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                />
+                                <textarea
+                                    value={formData().alamatLengkap}
+                                    onInput={(e) => handleFormChange('alamatLengkap', e.target.value)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                    rows={3}
+                                    placeholder="Masukkan alamat lengkap"
+                                ></textarea>
                             </div>
-
-                            {/* Jenis Kelamin */}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <UserRoundCog size={16} /> Jenis Kelamin
-                                </label>
-                                <select
-                                    value={formData().jenisKelamin}
-                                    onInput={(e) => handleFormChange('jenisKelamin', e.target.value as 'Pria' | 'Wanita')}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                >
-                                    <option value="Wanita">Wanita</option>
-                                    <option value="Pria">Pria</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Alamat Lengkap */}
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <MapPin size={16} /> Alamat Lengkap
-                            </label>
-                            <textarea
-                                value={formData().alamatLengkap}
-                                onInput={(e) => handleFormChange('alamatLengkap', e.target.value)}
-                                class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                rows="2"
-                            ></textarea>
                         </div>
 
                         {/* Medical & Skin Info */}
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Medis & Kulit (Awal)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="riwayat-alergi-textarea" class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <CircleAlert size={16} /> Riwayat Alergi
+                        <div class="mb-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <Activity size={20} class="text-green-600" />
+                                Informasi Medis & Kulit
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Riwayat Alergi */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <AlertTriangle size={16} class="text-red-500" />
+                                        Riwayat Alergi
+                                    </label>
+                                    <textarea
+                                        value={formData().riwayatAlergi}
+                                        onInput={(e) => handleFormChange('riwayatAlergi', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                        rows={3}
+                                        placeholder="Contoh: Alergi antibiotik jenis Amoxicillin, alergi pewarna rambut"
+                                    ></textarea>
+                                </div>
+
+                                {/* Kondisi Medis */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Activity size={16} class="text-blue-500" />
+                                        Kondisi Medis yang Sedang Diderita
+                                    </label>
+                                    <textarea
+                                        value={formData().kondisiMedis}
+                                        onInput={(e) => handleFormChange('kondisiMedis', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                        rows={3}
+                                        placeholder="Contoh: Sedang hamil 5 bulan, memiliki riwayat diabetes tipe 2"
+                                    ></textarea>
+                                </div>
+                            </div>
+
+                            {/* Obat Konsumsi */}
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Pill size={16} class="text-purple-500" />
+                                    Obat-obatan/Suplemen yang Sedang Dikonsumsi
                                 </label>
                                 <textarea
-                                    id="riwayat-alergi-textarea"
-                                    value={formData().riwayatAlergi}
-                                    onInput={(e) => handleFormChange('riwayatAlergi', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    rows="3" // Anda bisa sesuaikan jumlah baris
-                                    placeholder="Contoh: Alergi antibiotik jenis Amoxicillin, alergi pewarna rambut."
+                                    value={formData().obatKonsumsi}
+                                    onInput={(e) => handleFormChange('obatKonsumsi', e.target.value)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                    rows={2}
+                                    placeholder="Contoh: Vitamin C, Paracetamol, dll"
                                 ></textarea>
                             </div>
-                            <div>
-                                <label for="kondisi-medis-textarea" class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <FlaskConical size={16} /> Kondisi Medis yang Sedang Diderita
+
+                            {/* Riwayat Treatment */}
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Clock size={16} class="text-orange-500" />
+                                    Riwayat Treatment Kecantikan Sebelumnya
                                 </label>
                                 <textarea
-                                    id="kondisi-medis-textarea"
-                                    value={formData().kondisiMedis}
-                                    onInput={(e) => handleFormChange('kondisiMedis', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                    rows="3" // Anda bisa sesuaikan jumlah baris
-                                    placeholder="Contoh: Sedang hamil 5 bulan, memiliki riwayat diabetes tipe 2, eksim di tangan."
+                                    value={formData().riwayatTreatment}
+                                    onInput={(e) => handleFormChange('riwayatTreatment', e.target.value)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                    rows={2}
+                                    placeholder="Contoh: Facial reguler, chemical peeling, dll"
+                                ></textarea>
+                            </div>
+
+                            {/* Keluhan Utama */}
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <MessageCircle size={16} class="text-indigo-500" />
+                                    Keluhan Utama / Tujuan Kunjungan
+                                </label>
+                                <textarea
+                                    value={formData().keluhanUtama}
+                                    onInput={(e) => handleFormChange('keluhanUtama', e.target.value)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 resize-none"
+                                    rows={3}
+                                    placeholder="Jelaskan keluhan atau tujuan kunjungan Anda"
                                 ></textarea>
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <Pill size={16} /> Obat-obatan/Suplemen yang Sedang Dikonsumsi
-                            </label>
-                            <textarea
-                                value={formData().obatKonsumsi}
-                                onInput={(e) => handleFormChange('obatKonsumsi', e.target.value)}
-                                class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                rows="2"
-                            ></textarea>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <History size={16} /> Riwayat Treatment Kecantikan Sebelumnya
-                            </label>
-                            <textarea
-                                value={formData().riwayatTreatment}
-                                onInput={(e) => handleFormChange('riwayatTreatment', e.target.value)}
-                                class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                rows="2"
-                            ></textarea>
-                        </div>
+                        {/* Emergency Contact */}
+                        <div class="mb-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <Users size={20} class="text-orange-600" />
+                                Kontak Darurat (Opsional)
+                            </h3>
 
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <MessageCircle size={16} /> Keluhan Utama / Tujuan Kunjungan
-                            </label>
-                            <textarea
-                                value={formData().keluhanUtama}
-                                onInput={(e) => handleFormChange('keluhanUtama', e.target.value)}
-                                class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                rows="3"
-                            ></textarea>
-                        </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Nama Kontak Darurat */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <User size={16} class="text-gray-500" />
+                                        Nama Kontak Darurat
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData().kontakDaruratNama}
+                                        onInput={(e) => handleFormChange('kontakDaruratNama', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        placeholder="Nama lengkap kontak darurat"
+                                    />
+                                </div>
 
-                        {/* Other Optional Info */}
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Tambahan</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <HeartHandshake size={16} /> Nomer Kontak Darurat
+                                {/* Hubungan */}
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Heart size={16} class="text-gray-500" />
+                                        Hubungan
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData().kontakDaruratHubungan}
+                                        onInput={(e) => handleFormChange('kontakDaruratHubungan', e.target.value)}
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                        placeholder="Contoh: Ibu, Suami, Saudara"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Nomor Kontak Darurat */}
+                            <div class="mt-6 space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Phone size={16} class="text-gray-500" />
+                                    Nomor Kontak Darurat
                                 </label>
                                 <input
-                                    type="text"
+                                    type="tel"
                                     value={formData().NomerKontakDarurat}
                                     onInput={(e) => handleFormChange('NomerKontakDarurat', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                />
-                            </div>
-
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <HeartHandshake size={16} /> Kontak Darurat Nama
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData().kontakDaruratNama}
-                                    onInput={(e) => handleFormChange('kontakDaruratNama', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                                />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <Handshake size={16} /> Kontak Darurat Hubungan
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData().kontakDaruratHubungan}
-                                    onInput={(e) => handleFormChange('kontakDaruratHubungan', e.target.value)}
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                    placeholder="081234567890"
                                 />
                             </div>
                         </div>
 
-                        <div class="flex items-start mb-4">
-                            <input
-                                type="checkbox"
-                                checked={formData().setujuData}
-                                onInput={(e) => handleFormChange('setujuData', e.target.checked)}
-                                class="form-checkbox h-5 w-5 text-purple-600 rounded mt-1"
-                                required
-                            />
-                            <label class="ml-2 block text-sm text-gray-900">
-                                Saya menyetujui data saya disimpan dan digunakan untuk keperluan layanan klinik. <span class="text-red-500">*</span>
+                        {/* Communication Preferences */}
+                        <div class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                                <MessageSquare size={20} class="text-purple-600" />
+                                Preferensi Komunikasi (Opsional)
+                            </h3>
+
+                            <div class="space-y-4">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    Bagaimana Anda ingin dihubungi?
+                                </label>
+                                <div class="flex flex-wrap gap-4">
+                                    {['WhatsApp', 'Email', 'Telepon'].map((method) => (
+                                        <label class="flex items-center p-3 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-all duration-200">
+                                            <input
+                                                type="checkbox"
+                                                value={method}
+                                                checked={formData().preferensiKomunikasi.includes(method)}
+                                                onInput={(e) => {
+                                                    const target = e.target;
+                                                    const current = formData().preferensiKomunikasi;
+                                                    if (target.checked) {
+                                                        handleFormChange('preferensiKomunikasi', [...current, method]);
+                                                    } else {
+                                                        handleFormChange('preferensiKomunikasi', current.filter(p => p !== method));
+                                                    }
+                                                }}
+                                                class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                            />
+                                            <span class="ml-3 text-gray-700 font-medium">{method}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Agreement */}
+                        <div class="mb-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
+                            <label class="flex items-start gap-4 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData().setujuData}
+                                    onInput={(e) => handleFormChange('setujuData', e.target.checked)}
+                                    class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500 mt-1"
+                                    required
+                                />
+                                <div class="flex-1">
+                                    <span class="text-gray-900 font-medium">
+                                        Saya menyetujui data saya disimpan dan digunakan untuk keperluan layanan klinik.
+                                        <span class="text-red-500">*</span>
+                                    </span>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        Data Anda akan dijaga kerahasiaannya dan hanya digunakan untuk memberikan pelayanan medis terbaik.
+                                    </p>
+                                </div>
                             </label>
-                        </div></div>
+                        </div>
+                    </div>
 
-
-                    <div class="flex justify-end">
+                    {/* Submit Button */}
+                    <div class="flex justify-end pt-6 border-t border-gray-200">
                         <button
                             type="submit"
-                            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-colors duration-200 shadow-md hover:shadow-lg"
+                            class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-200 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105"
                         >
-                            Lanjut ke Booking <CheckCheck size={18} />
+                            Lanjut ke Booking
+                            <CheckCheck size={20} />
                         </button>
                     </div>
                 </form>
-            </div>
-            {/* --- Step 2: Booking Details --- */}
-            <form onSubmit={handleSubmitBooking} classList={{ 'block': currentStep() === 2, 'hidden': currentStep() !== 2 }}>
-                <h2 class="text-2xl font-semibold text-gray-900 mb-6">Langkah 2: Detail Booking</h2>
 
-                {/* Display Pasien Info Summary (if existing patient selected) */}
-                {!isNewPatient() && selectedPasienId() && (
-                    <div class="bg-purple-50 border-l-4 border-purple-500 text-purple-800 p-4 mb-6 rounded-md shadow-sm">
-                        <h3 class="font-bold mb-2">Pasien Terpilih: {pasienList().find(p => p.id === selectedPasienId())?.namaLengkap}</h3>
-                        <p class="text-sm">Telp: {pasienList().find(p => p.id === selectedPasienId())?.noTelepon}</p>
-                        <p class="text-sm">Keluhan Awal: {pasienList().find(p => p.id === selectedPasienId())?.keluhanUtama || '-'}</p>
-                        <p class="text-sm font-semibold mt-2" classList={{ 'text-red-600': !pasienList().find(p => p.id === selectedPasienId())?.hasInitialSkinAnalysis }}>
-                            {pasienList().find(p => p.id === selectedPasienId())?.hasInitialSkinAnalysis
-                                ? '✅ Sudah Analisis Kulit Awal'
-                                : '⚠️ Perlu Analisis Kulit Awal'
-                            }
-                        </p>
+                {/* --- Step 2: Booking Details --- */}
+                <form
+                    onSubmit={handleSubmitBooking}
+                    class={currentStep() === 2 ? 'block' : 'hidden'}
+                >
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center">
+                                <span class="text-white font-bold">2</span>
+                            </div>
+                            Detail Janji Temu
+                        </h2>
+                        <p class="text-gray-600">Pilih tanggal, waktu, dokter, dan treatment untuk janji temu.</p>
                     </div>
-                )}
 
+                    {/* Appointment Details */}
+                    <div class="p-6 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 mb-8">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                            <Calendar size={20} class="text-teal-600" />
+                            Detail Janji Temu
+                        </h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {/* Tanggal Appointment */}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                            <Calendar size={16} /> Tanggal Appointment <span class="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            value={formData().tanggalAppointment}
-                            onInput={(e) => handleFormChange('tanggalAppointment', e.target.value)}
-                            min={dayjs().format('YYYY-MM-DD')} // Tanggal tidak bisa mundur
-                            class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            required
-                        />
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Tanggal Appointment */}
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Calendar size={16} class="text-gray-500" />
+                                    Tanggal Appointment <span class="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    value={formData().tanggalAppointment}
+                                    onInput={(e) => handleFormChange('tanggalAppointment', e.target.value)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                    required
+                                    min={dayjs().format('YYYY-MM-DD')}
+                                />
+                            </div>
+
+                            {/* Pilih Dokter */}
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Stethoscope size={16} class="text-gray-500" />
+                                    Pilih Dokter <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={formData().selectedDokterId || ''}
+                                    onInput={(e) => handleFormChange('selectedDokterId', parseInt((e.target as HTMLSelectElement).value))}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                    required
+                                >
+                                    <option value="" disabled>-- Pilih Dokter --</option>
+                                    {dokterList().map(dokter => (
+                                        <option value={dokter.id}>{dokter.nama}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Pilih Treatment */}
+                            <div class="space-y-2 md:col-span-2"> {/* Span two columns */}
+                                <label class="block text-sm font-semibold text-gray-700 f}lex items-center gap-2">
+                                    <Pill size={16} class="text-gray-500" />
+                                    Pilih Treatment <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    multiple
+                                    value={formData().selectedTreatmentIds}
+                                    onInput={(e) => handleMultiSelectChange('selectedTreatmentIds', e)}
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400 h-32"
+                                    required
+                                >
+                                    {treatmentList().map(treatment => (
+                                        <option
+                                            value={treatment.id}
+                                            selected={formData().selectedTreatmentIds.includes(String(treatment.id)) ||
+                                                ((isNewPatient() || (selectedPasienId() && !pasienList().find(p => p.id === selectedPasienId())?.hasInitialSkinAnalysis)) && treatment.nama === 'Analisis Kulit Awal & Konsultasi')}
+                                        >
+                                            {treatment.nama} ({treatment.estimasiWaktu} menit) - {treatment.harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                                        </option>
+                                    ))}
+                                </select>
+                                {/* Display total duration */}
+                                <p class="text-sm text-gray-600 mt-2 flex items-center gap-1">
+                                    <Clock size={14} class="text-gray-500" />
+                                    Estimasi Durasi Total: <span class="font-semibold text-purple-700">{totalAppointmentDuration()} menit</span>
+                                </p>
+                            </div>
+
+                            {/* Available Time Slots */}
+                            <div class="space-y-2 md:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <Clock size={16} class="text-gray-500" />
+                                    Pilih Waktu Mulai <span class="text-red-500">*</span>
+                                </label>
+                                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                                    {availableTimeSlots().length > 0 ? (
+                                        availableTimeSlots().map(slot => (
+                                            <label
+                                                class={`flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 
+                                                         ${formData().selectedWaktuMulai === slot
+                                                        ? 'bg-purple-600 text-white border-purple-600 shadow-md'
+                                                        : 'bg-white text-gray-800 border-gray-300 hover:border-purple-400'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="selectedWaktuMulai"
+                                                    value={slot}
+                                                    checked={formData().selectedWaktuMulai === slot}
+                                                    onInput={(e) => handleFormChange('selectedWaktuMulai', e.target.value)}
+                                                    class="hidden"
+                                                />
+                                                <span class="font-medium text-sm">{slot}</span>
+                                            </label>
+                                        ))
+                                    ) : (
+                                        <p class="text-sm text-gray-500 col-span-full flex items-center gap-2">
+                                            <AlertTriangle size={16} class="text-yellow-500" />
+                                            Tidak ada slot waktu yang tersedia. Pilih tanggal atau dokter lain, atau sesuaikan treatment yang dipilih.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {/* Estimasi Durasi Total Treatment */}
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                            <Clock size={16} /> Estimasi Durasi Booking
-                        </label>
-                        <input
-                            type="text"
-                            value={`${totalAppointmentDuration()} menit`}
-                            class="w-full px-3 py-2 border border-gray-300 rounded-xl bg-gray-100 text-gray-700 cursor-not-allowed"
-                            readOnly
-                            disabled
-                        />
+
+                    {/* Navigation Buttons for Step 2 */}
+                    <div class="flex justify-between pt-8 border-t border-gray-200 mt-10">
+                        <button
+                            type="button"
+                            onClick={() => setCurrentStep(1)}
+                            class="px-8 py-3 bg-gray-300 text-gray-800 font-semibold rounded-xl shadow-md hover:bg-gray-400 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+                        >
+                            
+                            Kembali
+                        </button>
+                        <button
+                            type="submit"
+                            class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
+                        >
+                            Konfirmasi Booking
+                            <CheckCheck size={20} />
+                        </button>
                     </div>
-                </div>
-
-                {/* Pilih Treatment */}
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <Tag size={16} /> Pilih Treatment yang Diinginkan <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        multiple
-                        value={formData().selectedTreatmentIds} // <-- Ini akan menerima string[]
-                        onInput={(e) => handleMultiSelectChange('selectedTreatmentIds', e)}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 h-32"
-                        required={!isNewPatient()}
-                    >
-                        <Show when={isNewPatient() && initialSkinAnalysisTreatment()}>
-                            <option value={String(initialSkinAnalysisTreatment()?.id)} selected disabled={true}> {/* <-- Konversi ID ke string */}
-                                {initialSkinAnalysisTreatment()?.nama} (Wajib)
-                            </option>
-                        </Show>
-                        <For each={treatmentList().filter(t => t.nama !== 'Analisis Kulit Awal & Konsultasi')}>
-                            {(treatment) => (
-                                <option value={String(treatment.id)}> {/* <-- Konversi ID ke string */}
-                                    {treatment.nama} ({treatment.estimasiWaktu} menit)
-                                </option>
-                            )}
-                        </For>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">
-                        {isNewPatient()
-                            ? 'Untuk pasien baru, "Analisis Kulit Awal & Konsultasi" otomatis termasuk.'
-                            : 'Tekan `Ctrl` (Windows/Linux) atau `Cmd` (macOS) dan klik untuk memilih lebih dari satu treatment.'
-                        }
-                    </p>
-                </div>
-
-                {/* Pilih Dokter */}
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <Stethoscope size={16} /> Pilih Dokter/Terapis <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={formData().selectedDokterId || ''}
-                        onInput={(e) => handleFormChange('selectedDokterId', parseInt(e.target.value) || null)}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                        required
-                    >
-                        <option value="" disabled>-- Pilih Dokter --</option>
-                        <For each={availableDokterForTreatments()}>
-                            {(dokter) => (
-                                <option value={dokter.id}>{dokter.nama} ({dokter.posisi})</option>
-                            )}
-                        </For>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Dokter yang muncul sudah difilter berdasarkan spesialisasi dan ketersediaan treatment.
-                    </p>
-                </div>
-
-                {/* Pilih Waktu Mulai */}
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        <Clock size={16} /> Pilih Waktu Mulai <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={formData().selectedWaktuMulai}
-                        onInput={(e) => handleFormChange('selectedWaktuMulai', e.target.value)}
-                        class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                        required
-                        disabled={!formData().tanggalAppointment || !formData().selectedDokterId || totalAppointmentDuration() === 0}
-                    >
-                        <option value="" disabled>-- Pilih Waktu --</option>
-                        <Show when={availableTimeSlots().length > 0} fallback={<option disabled>Tidak ada slot tersedia untuk pilihan ini</option>}>
-                            <For each={availableTimeSlots()}>
-                                {(slot) => (
-                                    <option value={slot}>{slot}</option>
-                                )}
-                            </For>
-                        </Show>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">
-                        Slot waktu yang tersedia disesuaikan dengan jadwal dokter dan durasi treatment.
-                    </p>
-                </div>
-
-                <div class="flex gap-3 pt-4 justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setCurrentStep(1)}
-                        class="px-6 py-3 text-gray-600 border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors duration-200 shadow-sm"
-                    >
-                        Kembali
-                    </button>
-                    <button
-                        type="submit"
-                        class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-colors duration-200 shadow-md hover:shadow-lg"
-                    >
-                        Konfirmasi Booking
-                    </button>
-                </div>
-            </form>
-        </div>
-
+                </form>
+            </div> {/* End of Main Content Card */}
+        </div> // End of min-h-screen div
     );
 };
-
 export default BookingPage;

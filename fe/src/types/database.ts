@@ -15,18 +15,17 @@ export interface Treatment {
     harga: number;
 }
 
-export interface JadwalDokter {
-    hari: string;
-    waktuMulai: string; // HH:mm
-    waktuSelesai: string; // HH:mm
+export interface DailySchedule {
+  day: 'Senin' | 'Selasa' | 'Rabu' | 'Kamis' | 'Jumat' | 'Sabtu' | 'Minggu';
+  startTime: string; // e.g., "09:00"
+  endTime: string;   // e.g., "17:00"
 }
 
 export interface Dokter {
     id: number;
     nama: string;
     posisi: string;
-    spesialisasi: number[]; // Array of Treatment IDs
-    jadwal: JadwalDokter[]; // <-- PERUBAHAN DI SINI
+    jadwal: DailySchedule[]; // <-- PERUBAHAN DI SINI
 }
 
 

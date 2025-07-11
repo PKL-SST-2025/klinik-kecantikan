@@ -1,79 +1,63 @@
-import { Component, createSignal, createMemo, onMount, createEffect } from 'solid-js';
+import { Component, createSignal, createMemo, onMount, createEffect, For } from 'solid-js'; // Import 'For' for looping
 import AgGridSolid from 'solid-ag-grid';
 import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import '../styles/ag-custom-purple.css'; // Import custom styles for AG Grid
-import { Plus, Edit, Trash2, User, Briefcase, Star, CalendarDays } from 'lucide-solid';
+import { Plus, Edit, Trash2, User, Briefcase, CalendarDays } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
-
-// Types for Dokter
-interface Dokter {
-  id: number;
-  nama: string;
-  posisi: string;
-  spesialisasi: number[]; // Array of Treatment IDs
-  jadwal: string; // e.g., "Senin, Rabu, Jumat" or specific times
-}
-
-// Assuming Treatment interface is available from your other file or defined here for completeness
-interface Treatment {
-    id: number;
-    nama: string;
-    estimasiWaktu: number;
-    harga: number;
-}
+import { Dokter, DailySchedule } from '../types/database'; // Adjusted import - removed Treatment
 
 const StaffPage: Component = () => {
   // State management
   const [dokterList, setDokterList] = createSignal<Dokter[]>([]);
-  const [treatmentList, setTreatmentList] = createSignal<Treatment[]>([]); // To get treatment names for display
   const [isModalOpen, setIsModalOpen] = createSignal(false);
   const [editingDokter, setEditingDokter] = createSignal<Dokter | null>(null);
   const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
   const [isDataLoaded, setIsDataLoaded] = createSignal(false);
 
-  // Form state
+  // Form state - removed spesialisasi
   const [formData, setFormData] = createSignal({
     nama: '',
     posisi: '',
-    spesialisasi: [] as number[], // Initialize as empty array of numbers
-    jadwal: ''
+    jadwal: [] as DailySchedule[] // Initialize as empty array of DailySchedule
   });
 
   // Load data from localStorage on mount
   onMount(() => {
     console.log('onMount: Initializing Dokter data...');
     const storedDokter = localStorage.getItem('dokterList');
-    const storedTreatment = localStorage.getItem('treatmentList'); // Load treatments to link specialties
 
     if (storedDokter) {
       const parsedDokter = JSON.parse(storedDokter);
       setDokterList(parsedDokter);
       console.log('onMount: Dokter loaded from localStorage:', parsedDokter);
     } else {
-      const sampleDokter = [
-        { id: 1, nama: 'Dr. Ayu Lestari', posisi: 'Dokter Umum', spesialisasi: [1, 2], jadwal: 'Senin, Rabu, Jumat (09:00-17:00)' },
-        { id: 2, nama: 'Dr. Budi Santoso', posisi: 'Dokter Kulit', spesialisasi: [1, 3], jadwal: 'Selasa, Kamis (10:00-18:00)' },
+      const sampleDokter: Dokter[] = [ // Sample data without spesialisasi
+        {
+          id: 1,
+          nama: 'Dr. Ayu Lestari',
+          posisi: 'Dokter Umum',
+          jadwal: [
+            { day: 'Senin', startTime: '09:00', endTime: '17:00' },
+            { day: 'Rabu', startTime: '09:00', endTime: '17:00' },
+            { day: 'Jumat', startTime: '09:00', endTime: '17:00' },
+          ]
+        },
+        {
+          id: 2,
+          nama: 'Dr. Budi Santoso',
+          posisi: 'Dokter Kulit',
+          jadwal: [
+            { day: 'Selasa', startTime: '10:00', endTime: '18:00' },
+            { day: 'Kamis', startTime: '10:00', endTime: '18:00' },
+          ]
+        },
       ];
       setDokterList(sampleDokter);
       console.log('onMount: Dokter (sample data):', sampleDokter);
     }
 
-    if (storedTreatment) {
-        const parsedTreatment = JSON.parse(storedTreatment);
-        setTreatmentList(parsedTreatment);
-        console.log('onMount: Treatment loaded from localStorage:', parsedTreatment);
-    } else {
-        // Fallback if no treatment data is found (should ideally be synced with ProdukTreatmentPage)
-        const sampleTreatment = [
-            { id: 1, nama: 'Facial Hydrating', estimasiWaktu: 60, harga: 200000 },
-            { id: 2, nama: 'Chemical Peeling', estimasiWaktu: 90, harga: 350000 },
-            { id: 3, nama: 'Microneedling', estimasiWaktu: 75, harga: 450000 },
-        ];
-        setTreatmentList(sampleTreatment);
-        console.log('onMount: Treatment (sample data) for DokterPage:', sampleTreatment);
-    }
     setIsDataLoaded(true);
     console.log('onMount: Dokter data loading complete, isDataLoaded set to true.');
   });
@@ -96,12 +80,15 @@ const StaffPage: Component = () => {
     }
   });
 
-  // Helper to get treatment names from IDs
-  const getTreatmentNames = (treatmentIds: number[]) => {
-    return treatmentIds.map(id => {
-      const treatment = treatmentList().find(t => t.id === id);
-      return treatment ? treatment.nama : `Unknown Treatment (ID: ${id})`;
-    }).join(', ');
+  // Helper to format structured schedule for display in AG-Grid
+  const formatJadwal = (jadwal: DailySchedule[]) => {
+    if (!jadwal || jadwal.length === 0) return '-';
+    // Sort by day for consistent display (optional, but good for readability)
+    const sortedJadwal = [...jadwal].sort((a, b) => {
+      const daysOrder = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      return daysOrder.indexOf(a.day) - daysOrder.indexOf(b.day);
+    });
+    return sortedJadwal.map(s => `${s.day} (${s.startTime}-${s.endTime})`).join('; ');
   };
 
   const handleActionClick = (action: string, id: number) => {
@@ -112,7 +99,7 @@ const StaffPage: Component = () => {
     }
   };
 
-  // AG-Grid column definitions for Dokter
+  // AG-Grid column definitions for Dokter - removed spesialisasi column
   const dokterColumns = createMemo((): ColDef[] => {
     console.log('createMemo: Dokter Columns re-calculated.');
     return [
@@ -120,13 +107,12 @@ const StaffPage: Component = () => {
       { field: 'nama', headerName: 'Nama Dokter', flex: 1, sortable: true },
       { field: 'posisi', headerName: 'Posisi', width: 150, sortable: true },
       {
-        field: 'spesialisasi',
-        headerName: 'Spesialisasi Treatment',
+        field: 'jadwal',
+        headerName: 'Jadwal',
         flex: 1.5,
         sortable: true,
-        valueFormatter: (params: any) => getTreatmentNames(params.value)
+        valueFormatter: (params: any) => formatJadwal(params.value)
       },
-      { field: 'jadwal', headerName: 'Jadwal', flex: 1, sortable: true },
       {
         headerName: 'Aksi',
         width: 120,
@@ -169,8 +155,7 @@ const StaffPage: Component = () => {
       setFormData({
         nama: dokter.nama,
         posisi: dokter.posisi,
-        spesialisasi: dokter.spesialisasi,
-        jadwal: dokter.jadwal
+        jadwal: [...dokter.jadwal] // Create a copy to prevent direct mutation
       });
       setIsModalOpen(true);
       console.log('handleEdit: Opened modal for editing Dokter.');
@@ -185,17 +170,21 @@ const StaffPage: Component = () => {
     console.log('Dokter deleted:', id);
   };
 
-  // Handler for form submission (Add/Edit)
+  // Handler for form submission (Add/Edit) - removed spesialisasi validation
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    console.log('handleSubmit: Submitting form. Form Data:', formData());
+
+    // Validasi jadwal
+    if (formData().jadwal.some(s => !s.day || !s.startTime || !s.endTime)) {
+      toast.error('Pastikan semua detail jadwal terisi (Hari, Jam Mulai, Jam Selesai).');
+      return;
+    }
 
     const newDokter: Dokter = {
-      id: editingDokter() ? editingDokter()!.id : Date.now(), // Use existing ID or new unique ID
+      id: editingDokter() ? editingDokter()!.id : Date.now(),
       nama: formData().nama,
       posisi: formData().posisi,
-      spesialisasi: formData().spesialisasi,
-      jadwal: formData().jadwal
+      jadwal: formData().jadwal,
     };
 
     if (editingDokter()) {
@@ -216,22 +205,17 @@ const StaffPage: Component = () => {
     console.log('closeModal: Closing modal.');
     setIsModalOpen(false);
     setEditingDokter(null);
-    setFormData({ nama: '', posisi: '', spesialisasi: [], jadwal: '' }); // Reset form data
+    // Reset form data to initial empty states, including jadwal as an empty array
+    setFormData({ nama: '', posisi: '', jadwal: [] });
   };
 
   // Open add modal handler
   const openAddModal = () => {
     console.log('openAddModal: Opening add modal.');
     setEditingDokter(null); // Ensure no item is being edited when adding
-    setFormData({ nama: '', posisi: '', spesialisasi: [], jadwal: '' }); // Clear form
+    // Clear form and initialize jadwal as an empty array
+    setFormData({ nama: '', posisi: '', jadwal: [] });
     setIsModalOpen(true);
-  };
-
-  // Handler for multi-select (Spesialisasi)
-  const handleSpesialisasiChange = (e: Event) => {
-    const target = e.target as HTMLSelectElement;
-    const selectedOptions = Array.from(target.selectedOptions).map(option => parseInt(option.value));
-    setFormData(prev => ({ ...prev, spesialisasi: selectedOptions }));
   };
 
   // Memoized rowData for AgGridSolid
@@ -248,7 +232,7 @@ const StaffPage: Component = () => {
       {/* Header Section */}
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Manajemen Dokter</h1>
-        <p class="text-gray-600">Kelola informasi dokter, spesialisasi, dan jadwal mereka di klinik</p>
+        <p class="text-gray-600">Kelola informasi dokter dan jadwal mereka di klinik</p>
       </div>
 
       {/* Main Content Card (Table and Add Button) */}
@@ -345,39 +329,6 @@ const StaffPage: Component = () => {
                   />
                 </div>
 
-                {/* Spesialisasi (Treatment) Field - Multi-select */}
-                  {/* Spesialisasi (Treatment) Field - Multi-select */}
-                <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <div class="flex items-center gap-2">
-                      <Star size={16} />
-                      Spesialisasi Treatment
-                    </div>
-                  </label>
-                 <select
-  multiple
-  onInput={(e) => {
-    const target = e.target as HTMLSelectElement;
-    const selectedOptions = Array.from(target.options)
-      .filter(option => option.selected)
-      .map(option => parseInt(option.value));
-    setFormData(prev => ({ ...prev, spesialisasi: selectedOptions }));
-  }}
-  class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 h-32"
->
-  {treatmentList().map(treatment => (
-    <option
-      value={treatment.id}
-      selected={formData().spesialisasi.includes(treatment.id)} // ✅ manual bind
-    >
-      {treatment.nama}
-    </option>
-  ))}
-</select>
-<p class="text-xs text-gray-500 mt-1">Tekan `Ctrl` (Windows/Linux) atau `Cmd` (macOS) dan klik untuk memilih lebih dari satu.</p>
-                </div>
-                
-
                 {/* Jadwal Dokter Field */}
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -386,14 +337,82 @@ const StaffPage: Component = () => {
                       Jadwal Dokter
                     </div>
                   </label>
-                  <input
-                    type="text"
-                    value={formData().jadwal}
-                    onInput={(e) => setFormData(prev => ({ ...prev, jadwal: e.target.value }))}
-                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Contoh: Senin, Rabu (09:00-17:00)"
-                    required
-                  />
+                  {/* Loop through each daily schedule entry */}
+                  <For each={formData().jadwal}>
+                    {(schedule, index) => (
+                      <div class="flex flex-wrap items-center gap-2 mb-2 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                        <select
+                          value={schedule.day}
+                          onInput={(e) => {
+                            const updatedJadwal = [...formData().jadwal];
+                            updatedJadwal[index()].day = e.target.value as DailySchedule['day'];
+                            setFormData(prev => ({ ...prev, jadwal: updatedJadwal }));
+                          }}
+                          class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400 w-24"
+                          required
+                        >
+                          <option value="">Pilih Hari</option>
+                          <option value="Senin">Senin</option>
+                          <option value="Selasa">Selasa</option>
+                          <option value="Rabu">Rabu</option>
+                          <option value="Kamis">Kamis</option>
+                          <option value="Jumat">Jumat</option>
+                          <option value="Sabtu">Sabtu</option>
+                          <option value="Minggu">Minggu</option>
+                        </select>
+                        <input
+                          type="time"
+                          value={schedule.startTime}
+                          onInput={(e) => {
+                            const updatedJadwal = [...formData().jadwal];
+                            updatedJadwal[index()].startTime = e.target.value;
+                            setFormData(prev => ({ ...prev, jadwal: updatedJadwal }));
+                          }}
+                          class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400 w-24"
+                          required
+                        />
+                        <span class="text-gray-600">-</span>
+                        <input
+                          type="time"
+                          value={schedule.endTime}
+                          onInput={(e) => {
+                            const updatedJadwal = [...formData().jadwal];
+                            updatedJadwal[index()].endTime = e.target.value;
+                            setFormData(prev => ({ ...prev, jadwal: updatedJadwal }));
+                          }}
+                          class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-400 w-24"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              jadwal: prev.jadwal.filter((_, i) => i !== index())
+                            }));
+                          }}
+                          class="text-red-600 hover:text-red-800 p-1 rounded-full transition-colors"
+                          title="Hapus Jadwal Ini"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </For>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        // Add a new empty schedule entry with default values
+                        jadwal: [...prev.jadwal, { day: 'Senin', startTime: '09:00', endTime: '17:00' }]
+                      }));
+                    }}
+                    class="mt-3 bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-xl flex items-center gap-2 transition-colors duration-200 shadow-md"
+                  >
+                    <Plus size={16} /> Tambah Hari & Jam
+                  </button>
+                  <p class="text-xs text-gray-500 mt-1">Tambahkan setiap hari kerja dokter beserta jam mulai dan selesai.</p>
                 </div>
 
                 {/* Action Buttons */}
