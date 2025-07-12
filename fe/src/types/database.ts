@@ -45,8 +45,6 @@ export interface TreatmentProgress {
     appointmentId: number; // Link to the specific appointment where this progress was done
     tanggalProgress: string; // YYYY-MM-DD
     catatan: string; // Deskripsi treatment yang dilakukan dan hasilnya
-    fotoSebelum?: string; // URL/Base64 foto sebelum (opsional)
-    fotoSesudah?: string; // URL/Base64 foto sesudah (opsional)
 }
 
 export interface Pasien {
@@ -80,8 +78,6 @@ export interface Appointment {
     dokterId: number;
     treatmentIds: number[];
     tanggal: string; // 'YYYY-MM-DD'
-    waktuMulai: string; // 'HH:MM'
-    waktuSelesai: string; // 'HH:MM'
     status: 'booked' | 'completed' | 'cancelled' | 'rescheduled';
     isInitialSkinAnalysis: boolean; // Jika appointment ini adalah untuk analisis kulit awal
     // NEW: Link ke hasil analisis/progress jika sudah selesai

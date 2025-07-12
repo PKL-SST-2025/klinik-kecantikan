@@ -27,8 +27,6 @@ const PasienDataPage: Component = () => {
 
     const [treatmentProgressFormData, setTreatmentProgressFormData] = createSignal<Partial<TreatmentProgress>>({
         catatan: '',
-        fotoSebelum: '',
-        fotoSesudah: '',
     });
 
     // --- OnMount: Load data from localStorage ---
@@ -170,8 +168,6 @@ const PasienDataPage: Component = () => {
                 appointmentId: appt.id,
                 tanggalProgress: dayjs().format('YYYY-MM-DD'),
                 catatan: treatmentProgressFormData().catatan || '',
-                fotoSebelum: treatmentProgressFormData().fotoSebelum,
-                fotoSesudah: treatmentProgressFormData().fotoSesudah,
             };
 
             setPasienList(prev => prev.map(p =>
@@ -471,30 +467,7 @@ const PasienDataPage: Component = () => {
                                                     placeholder="Deskripsikan treatment yang dilakukan, produk yang digunakan, dan reaksi pasien. Contoh: Facial Hydrating. Kulit lebih lembab, jerawat kempes. Pasien merasa nyaman."
                                                 ></textarea>
                                             </div>
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label for="foto-sebelum" class="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Camera size={16} /> Foto Sebelum (Base64/URL)</label>
-                                                    <input
-                                                        type="text" // Or type="file" with file reader logic
-                                                        id="foto-sebelum"
-                                                        value={treatmentProgressFormData().fotoSebelum || ''}
-                                                        onInput={(e) => handleTreatmentProgressFormChange('fotoSebelum', e.target.value)}
-                                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        placeholder="URL gambar atau Base64"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label for="foto-sesudah" class="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2"><Camera size={16} /> Foto Sesudah (Base64/URL)</label>
-                                                    <input
-                                                        type="text" // Or type="file" with file reader logic
-                                                        id="foto-sesudah"
-                                                        value={treatmentProgressFormData().fotoSesudah || ''}
-                                                        onInput={(e) => handleTreatmentProgressFormChange('fotoSesudah', e.target.value)}
-                                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                        placeholder="URL gambar atau Base64"
-                                                    />
-                                                </div>
-                                            </div>
+                                            
                                             <button
                                                 type="submit"
                                                 class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-colors duration-200 shadow-md"
@@ -533,18 +506,7 @@ const PasienDataPage: Component = () => {
                                                         </div>
                                                     </Show>
 
-                                                    <Show when={progress}>
-                                                        <div class="bg-green-50 p-2 rounded-md mb-2 text-sm border border-green-100">
-                                                            <p class="font-semibold text-green-700 mb-1">Catatan Progress Treatment</p>
-                                                            <p>{progress!.catatan}</p>
-                                                            <Show when={progress!.fotoSebelum}>
-                                                                <p class="text-xs mt-1">Foto Sebelum: <a href={progress!.fotoSebelum} target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
-                                                            </Show>
-                                                            <Show when={progress!.fotoSesudah}>
-                                                                <p class="text-xs">Foto Sesudah: <a href={progress!.fotoSesudah} target="_blank" class="text-blue-600 hover:underline">Lihat</a></p>
-                                                            </Show>
-                                                        </div>
-                                                    </Show>
+                                                    
                                                 </div>
                                             );
                                         }}

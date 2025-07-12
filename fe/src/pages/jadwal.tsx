@@ -85,11 +85,11 @@ const AppointmentSchedulePage: Component = () => {
             });
         }
 
-        // Sort by Date and Time (earliest first)
+        // Sort by Date only (earliest first)
         return filtered.sort((a, b) => {
-            const dateTimeA = dayjs(`${a.tanggal} ${a.waktuMulai}`);
-            const dateTimeB = dayjs(`${b.tanggal} ${b.waktuMulai}`);
-            return dateTimeA.diff(dateTimeB);
+            const dateA = dayjs(a.tanggal);
+            const dateB = dayjs(b.tanggal);
+            return dateA.diff(dateB);
         });
     });
 
@@ -204,7 +204,7 @@ const AppointmentSchedulePage: Component = () => {
                     <table class="min-w-full bg-white rounded-lg overflow-hidden shadow-sm">
                         <thead class="bg-purple-100 text-purple-800">
                             <tr>
-                                <th class="py-3 px-4 text-left text-sm font-semibold">Tanggal & Waktu</th>
+                                <th class="py-3 px-4 text-left text-sm font-semibold">Tanggal</th>
                                 <th class="py-3 px-4 text-left text-sm font-semibold">Pasien</th>
                                 <th class="py-3 px-4 text-left text-sm font-semibold">Dokter</th>
                                 <th class="py-3 px-4 text-left text-sm font-semibold">Treatment</th>
@@ -221,7 +221,6 @@ const AppointmentSchedulePage: Component = () => {
                                         <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                                             <td class="py-3 px-4 text-gray-800">
                                                 <p>{dayjs(appt.tanggal).format('DD MMMM YYYY')}</p>
-                                                <p class="text-sm text-gray-600">{appt.waktuMulai} - {appt.waktuSelesai}</p>
                                             </td>
                                             <td class="py-3 px-4 text-gray-800">{getPasienName(appt.pasienId)}</td>
                                             <td class="py-3 px-4 text-gray-800">{getDokterName(appt.dokterId)}</td>
