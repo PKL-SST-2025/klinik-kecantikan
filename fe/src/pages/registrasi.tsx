@@ -1,3 +1,4 @@
+//src/pages/registrasi.tsx
 import { createSignal, createEffect, onMount, Component, createMemo } from 'solid-js';
 import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
@@ -247,9 +248,7 @@ const BookingPage: Component = () => {
             dokterId: formData().selectedDokterId!,
             treatmentIds: treatmentsForAppointment,
             tanggal: formData().tanggalAppointment,
-            waktuMulai: '09:00', // Default time since we removed time selection
-            waktuSelesai: dayjs(`${formData().tanggalAppointment} 09:00`).add(totalAppointmentDuration(), 'minute').format('HH:mm'),
-            status: 'booked',
+           status: 'booked',
             isInitialSkinAnalysis: requiresInitialAnalysis && treatmentsForAppointment.includes(analysisTreatment?.id!), // True if analysis is part of THIS appointment
         };
         
