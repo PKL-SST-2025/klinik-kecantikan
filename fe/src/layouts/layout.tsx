@@ -79,7 +79,7 @@ const Layout = (props: { children: JSX.Element }) => {
               </div>
               <Show when={sidebarExpanded()}>
                 <span class="font-bold text-gray-800 whitespace-nowrap">
-                  Klinik Cantik
+                  Glowwie Clinique
                 </span>
               </Show>
             </div>
@@ -249,13 +249,7 @@ const Layout = (props: { children: JSX.Element }) => {
                           <p class="text-xs text-gray-500">{getUserEmail()}</p>
                         </div>
                         <div class="py-2">
-                          <a
-                            href="/profile"
-                            class="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                          >
-                            <Settings class="w-4 h-4" />
-                            <span>Profile</span>
-                          </a>
+                          
                           <button
                             onClick={handleLogout}
                             class="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
