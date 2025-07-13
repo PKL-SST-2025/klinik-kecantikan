@@ -1,4 +1,4 @@
-// src/types/index.ts (atau sesuaikan dengan lokasi types Anda)
+
 // Pastikan semua interfaces yang sudah ada juga ada di sini
 
 export interface Produk {

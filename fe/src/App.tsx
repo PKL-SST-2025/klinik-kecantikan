@@ -14,7 +14,9 @@ import ProdukTreatmentPage from './pages/produk'; // Pastikan path ini sesuai de
 import StaffPage from './pages/Dokter';
 import BookingPage from './pages/registrasi';
 import PasienDataPage from './pages/pasien';
-import CheckoutPage from './pages/pembayaran'
+import CheckoutPage from './pages/pembayaran';
+import Dashboard from './pages/dashboard';
+import Statistik from './pages/analisis'; // Pastikan path ini sesuai dengan struktur proyek Anda
 import AppointmentSchedulePage from './pages/jadwal'; // Pastikan path ini sesuai dengan struktur proyek Anda
 // Auth Context Types
 interface User {
@@ -177,30 +179,7 @@ const ResetPasswordPage = () => (
 const DashboardPage = () => (
   <ProtectedRoute>
     <Layout>
-      <div class="space-y-6">
-        {/* Tambahkan kelas transparansi di sini */}
-        <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-          <h1 class="text-2xl font-bold text-gray-900 mb-4">Dashboard</h1>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-blue-600 rounded-lg p-6 text-white"> {/* Removed gradient */}
-              <h3 class="text-lg font-semibold mb-2">Total Pasien</h3>
-              <p class="text-3xl font-bold">1,234</p>
-            </div>
-            <div class="bg-green-600 rounded-lg p-6 text-white"> {/* Removed gradient */}
-              <h3 class="text-lg font-semibold mb-2">Janji Hari Ini</h3>
-              <p class="text-3xl font-bold">45</p>
-            </div>
-            <div class="bg-[#7F66CB] rounded-lg p-6 text-white"> {/* Used #7F66CB */}
-              <h3 class="text-lg font-semibold mb-2">Treatment Aktif</h3>
-              <p class="text-3xl font-bold">89</p>
-            </div>
-            <div class="bg-orange-600 rounded-lg p-6 text-white"> {/* Removed gradient */}
-              <h3 class="text-lg font-semibold mb-2">Pendapatan Bulan Ini</h3>
-              <p class="text-3xl font-bold">Rp 45M</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Dashboard />
     </Layout>
   </ProtectedRoute>
 );
@@ -248,11 +227,7 @@ const ProdukPage = () => (
 const StatistikPage = () => (
   <ProtectedRoute>
     <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Statistik & Laporan</h1>
-        <p class="text-gray-600">Halaman statistik dan laporan akan ditampilkan di sini.</p>
-      </div>
+      <Statistik />
     </Layout>
   </ProtectedRoute>
 );
@@ -265,17 +240,7 @@ const PembayaranPage = () => (
   </ProtectedRoute>
 );
 
-const ProfilePage = () => (
-  <ProtectedRoute>
-    <Layout>
-      {/* Tambahkan kelas transparansi di sini */}
-      <div class="bg-white/60 backdrop-blur-md rounded-lg shadow-sm p-6">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Profile</h1>
-        <p class="text-gray-600">Halaman profile pengguna akan ditampilkan di sini.</p>
-      </div>
-    </Layout>
-  </ProtectedRoute>
-);
+
 
 const NotFoundPage = () => (
   <div class="min-h-screen flex items-center justify-center bg-gray-50">
@@ -312,7 +277,6 @@ function App() {
           <Route path="/produk" component={ProdukPage} />
           <Route path="/statistik" component={StatistikPage} />
           <Route path="/pembayaran" component={PembayaranPage} />
-          <Route path="/profile" component={ProfilePage} />
 
           {/* Default redirect */}
           <Route path="/" component={() => {

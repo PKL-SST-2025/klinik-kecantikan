@@ -654,41 +654,7 @@ const BookingPage: Component = () => {
             </div>
         </div>
 
-        {/* Communication Preferences */}
-        <div class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200">
-            <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                <MessageSquare size={20} class="text-purple-600" />
-                Preferensi Komunikasi (Opsional)
-            </h3>
-
-            <div class="space-y-4">
-                <label class="block text-sm font-semibold text-gray-700">
-                    Bagaimana Anda ingin dihubungi?
-                </label>
-                <div class="flex flex-wrap gap-4">
-                    {['WhatsApp', 'Email', 'Telepon'].map((method) => (
-                        <label class="flex items-center p-3 bg-white rounded-xl border-2 border-gray-200 cursor-pointer hover:border-purple-300 transition-all duration-200">
-                            <input
-                                type="checkbox"
-                                value={method}
-                                checked={formData().preferensiKomunikasi.includes(method)}
-                                onInput={(e) => {
-                                    const target = e.target;
-                                    const current = formData().preferensiKomunikasi;
-                                    if (target.checked) {
-                                        handleFormChange('preferensiKomunikasi', [...current, method]);
-                                    } else {
-                                        handleFormChange('preferensiKomunikasi', current.filter(p => p !== method));
-                                    }
-                                }}
-                                class="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                            />
-                            <span class="ml-3 text-gray-700 font-medium">{method}</span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-        </div>
+       
 
         {/* Agreement */}
         <div class="mb-8 p-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">

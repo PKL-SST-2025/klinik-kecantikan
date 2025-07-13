@@ -27,13 +27,13 @@ const Layout = (props: { children: JSX.Element }) => {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/dashboard', key: 'dashboard' },
-    { icon: Users, label: 'Pasien', path: '/pasien', key: 'pasien' },
-    { icon: Calendar, label: 'Jadwal', path: '/jadwal', key: 'jadwal' },
     { icon: UserCheck, label: 'Registrasi', path: '/registrasi', key: 'registrasi' },
+    { icon: Calendar, label: 'Jadwal', path: '/jadwal', key: 'jadwal' },
+    { icon: Users, label: 'Pasien', path: '/pasien', key: 'pasien' },
     { icon: Stethoscope, label: 'Dokter', path: '/dokter', key: 'dokter' },
     { icon: FileText, label: 'Produk', path: '/produk', key: 'produk' },
-    { icon: BarChart3, label: 'Statistik', path: '/statistik', key: 'statistik' },
     { icon: Package, label: 'Pembayaran', path: '/pembayaran', key: 'pembayaran' },
+    { icon: BarChart3, label: 'Statistik', path: '/statistik', key: 'statistik' },
   ];
 
   const handleLogout = () => {
