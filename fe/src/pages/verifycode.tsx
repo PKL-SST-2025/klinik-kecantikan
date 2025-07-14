@@ -155,7 +155,12 @@ const VerifyCode = () => {
               >
                 {isLoading() ? 'Memverifikasi...' : 'Verifikasi'}
               </button>
-
+                
+<div class="text-center mt-2">
+  <p class="text-sm text-gray-600">
+    Untuk demo, gunakan kode: <span class="font-bold text-[#7F66CB]">123456</span>
+  </p>
+</div>
               {/* Resend Code Section */}
               <div class="text-center mt-4">
                 {timeLeft() === 0 ? (
