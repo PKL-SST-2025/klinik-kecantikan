@@ -1,4 +1,3 @@
-//src/App.tsx
 import { Router, Route } from '@solidjs/router';
 import { createSignal, createContext, useContext, Component, JSX, onMount } from 'solid-js';
 import { Toaster } from 'solid-toast';
@@ -9,22 +8,23 @@ import VerifyCode from './pages/verifycode';
 import Login from './pages/login';
 import ForgotPassword from './pages/forgotpassword';
 import ResetPassword from './pages/resetpassword';
-import Layout from './layouts/layout' // Ini adalah Layout.tsx Anda
-import ProdukTreatmentPage from './pages/produk'; // Pastikan path ini sesuai dengan struktur proyek Anda
+import Layout from './layouts/layout';
+import ProdukTreatmentPage from './pages/produk';
 import StaffPage from './pages/Dokter';
 import BookingPage from './pages/registrasi';
 import PasienDataPage from './pages/pasien';
 import CheckoutPage from './pages/pembayaran';
 import Dashboard from './pages/dashboard';
-import Statistik from './pages/analisis'; // Pastikan path ini sesuai dengan struktur proyek Anda
-import AppointmentSchedulePage from './pages/jadwal'; // Pastikan path ini sesuai dengan struktur proyek Anda
-// Auth Context Types
+import Statistik from './pages/analisis';
+import AppointmentSchedulePage from './pages/jadwal';
+import LandingPage from './pages/landing';
+
 interface User {
-  id: string; 
-  name: string; 
+  id: string;
+  name: string;
   email: string;
-  position: 'admin' | 'resepsionis' | 'dokter'; 
-  password?: string; 
+  position: 'admin' | 'resepsionis' | 'dokter';
+  password?: string;
 }
 
 interface AuthContextType {
@@ -35,21 +35,18 @@ interface AuthContextType {
   setUser: (user: User | null) => void;
 }
 
-// Create Auth Context
 const AuthContext = createContext<AuthContextType>();
 
-// Auth Provider Component
 const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
   const [user, setUser] = createSignal<User | null>(null);
 
-  // Check if user is authenticated on app load
   onMount(() => {
     const savedUser = localStorage.getItem('clinic_user');
     if (savedUser) {
       try {
         const parsedUser: User = JSON.parse(savedUser);
         const userWithoutPassword = { ...parsedUser };
-        delete userWithoutPassword.password; 
+        delete userWithoutPassword.password;
         setUser(userWithoutPassword);
       } catch (error) {
         console.error("Failed to parse user from localStorage:", error);
@@ -70,13 +67,13 @@ const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
 
         if (foundUser) {
           const userDataForContext: User = {
-            id: foundUser.email, 
+            id: foundUser.email,
             name: foundUser.name,
             email: foundUser.email,
             position: foundUser.position
           };
           setUser(userDataForContext);
-          localStorage.setItem('clinic_user', JSON.stringify(userDataForContext)); 
+          localStorage.setItem('clinic_user', JSON.stringify(userDataForContext));
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userEmail', email);
           resolve(true);
@@ -92,7 +89,7 @@ const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
     localStorage.removeItem('clinic_user');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
-    window.location.href = '/login'; 
+    window.location.href = '/login';
   };
 
   const isAuthenticated = () => user() !== null;
@@ -112,7 +109,6 @@ const AuthProvider: Component<{ children: JSX.Element }> = (props) => {
   );
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -121,31 +117,24 @@ export const useAuth = () => {
   return context;
 };
 
-// Protected Route Component
 const ProtectedRoute: Component<{ children: JSX.Element }> = (props) => {
   const auth = useAuth();
-  
   if (!auth.isAuthenticated()) {
     window.location.href = '/login';
     return null;
   }
-  
   return <>{props.children}</>;
 };
 
-// Public Route Component (redirect to dashboard if already authenticated)
 const PublicRoute: Component<{ children: JSX.Element }> = (props) => {
   const auth = useAuth();
-  
   if (auth.isAuthenticated()) {
     window.location.href = '/dashboard';
     return null;
   }
-  
   return <>{props.children}</>;
 };
 
-// Page Components (tetap sama)
 const RegisterPage = () => (
   <PublicRoute>
     <Register />
@@ -195,7 +184,7 @@ const PasienPage = () => (
 const JadwalPage = () => (
   <ProtectedRoute>
     <Layout>
-     <AppointmentSchedulePage />
+      <AppointmentSchedulePage />
     </Layout>
   </ProtectedRoute>
 );
@@ -235,12 +224,10 @@ const StatistikPage = () => (
 const PembayaranPage = () => (
   <ProtectedRoute>
     <Layout>
-      < CheckoutPage />
+      <CheckoutPage />
     </Layout>
   </ProtectedRoute>
 );
-
-
 
 const NotFoundPage = () => (
   <div class="min-h-screen flex items-center justify-center bg-gray-50">
@@ -254,62 +241,42 @@ const NotFoundPage = () => (
   </div>
 );
 
-// Main App Component
 function App() {
   return (
     <AuthProvider>
-      {/* Hapus div ini. Layout component akan menyediakan min-h-screen dan background */}
-      {/* <div class="min-h-screen bg-gray-50"> */}
-        <Router>
-          {/* Public Routes */}
-          <Route path="/register" component={RegisterPage} />
-          <Route path="/verify-code" component={VerifyCodePage} />
-          <Route path="/login" component={LoginPage} />
-          <Route path="/forgot-password" component={ForgotPasswordPage} />
-          <Route path="/reset-password" component={ResetPasswordPage} />
+      <Router>
+        <Route path="/" component={LandingPage} />
+        <Route path="/register" component={RegisterPage} />
+        <Route path="/verify-code" component={VerifyCodePage} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/forgot-password" component={ForgotPasswordPage} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
+        <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/pasien" component={PasienPage} />
+        <Route path="/jadwal" component={JadwalPage} />
+        <Route path="/registrasi" component={RegistrasiPage} />
+        <Route path="/dokter" component={DokterPage} />
+        <Route path="/produk" component={ProdukPage} />
+        <Route path="/statistik" component={StatistikPage} />
+        <Route path="/pembayaran" component={PembayaranPage} />
+        <Route path="*" component={NotFoundPage} />
+      </Router>
 
-          {/* Protected Routes */}
-          <Route path="/dashboard" component={DashboardPage} />
-          <Route path="/pasien" component={PasienPage} />
-          <Route path="/jadwal" component={JadwalPage} />
-          <Route path="/registrasi" component={RegistrasiPage} />
-          <Route path="/dokter" component={DokterPage} />
-          <Route path="/produk" component={ProdukPage} />
-          <Route path="/statistik" component={StatistikPage} />
-          <Route path="/pembayaran" component={PembayaranPage} />
-
-          {/* Default redirect */}
-          <Route path="/" component={() => {
-            const auth = useAuth();
-            if (auth.isAuthenticated()) {
-              window.location.href = '/dashboard';
-            } else {
-              window.location.href = '/login';
-            }
-            return null;
-          }} />
-          
-          {/* 404 Route */}
-          <Route path="*" component={NotFoundPage} />
-        </Router>
-        
-        {/* Toast Container - Letakkan ini di luar Router tapi di dalam AuthProvider */}
-        <Toaster
-          position="top-right"
-          containerClassName="z-50"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            iconTheme: {
-              primary: '#10B981',
-              secondary: '#fff',
-            },
-          }}
-        />
-      {/* </div> */} {/* Hapus penutup div ini juga */}
+      <Toaster
+        position="top-right"
+        containerClassName="z-50"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          iconTheme: {
+            primary: '#10B981',
+            secondary: '#fff',
+          },
+        }}
+      />
     </AuthProvider>
   );
 }

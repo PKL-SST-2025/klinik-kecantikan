@@ -96,16 +96,17 @@ const CheckoutPage: Component = () => {
         }
 
         const finalInvoice: Invoice = {
-            id: Date.now(),
-            tanggal: dayjs().format('YYYY-MM-DD'),
-            waktu: dayjs().format('HH:mm'),
-            totalAmount: totalAmount(),
-            amountPaid: amountPaid(),
-            change: changeAmount(),
-            status: 'paid',
-            kasirName: 'Admin', // Placeholder
-            ...activeInvoice(),
-        } as Invoice;
+    ...activeInvoice(),
+    id: Date.now(),
+    tanggal: dayjs().format('YYYY-MM-DD'),
+    waktu: dayjs().format('HH:mm'),
+    totalAmount: totalAmount(),
+    amountPaid: amountPaid(),
+    change: changeAmount(),
+    status: 'paid',
+    kasirName: 'Admin',
+} as Invoice;
+
 
         // Save invoice to history
         const updatedInvoices = [...invoiceList(), finalInvoice];
@@ -133,6 +134,9 @@ const CheckoutPage: Component = () => {
             .filter(inv => inv.status === 'paid')
             .sort((a, b) => b.id - a.id) // Sort by newest first
     );
+
+    
+
 
     return (
         <div class="p-8 bg-gray-50 min-h-screen">

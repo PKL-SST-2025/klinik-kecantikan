@@ -7,7 +7,7 @@ import {
   invoiceList,
   appointmentList,
   pasienList,
-} from '../stores/localDataStore'; // Pastikan path ini benar
+} from '../stores/localDataStore';
 
 // Import AmCharts 5
 import * as am5 from "@amcharts/amcharts5";

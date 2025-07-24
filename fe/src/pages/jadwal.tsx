@@ -58,6 +58,7 @@ const AppointmentSchedulePage: Component = () => {
             case 'completed': return { color: 'green', text: 'Completed', bgClass: 'bg-green-100 text-green-800' };
             case 'cancelled': return { color: 'red', text: 'Cancelled', bgClass: 'bg-red-100 text-red-800' };
             case 'rescheduled': return { color: 'orange', text: 'Rescheduled', bgClass: 'bg-orange-100 text-orange-800' };
+            case 'paid': return { color: 'purple', text: 'Paid', bgClass: 'bg-purple-100 text-purple-800' };
             default: return { color: 'gray', text: 'Unknown', bgClass: 'bg-gray-100 text-gray-800' };
         }
     };
@@ -109,16 +110,20 @@ const AppointmentSchedulePage: Component = () => {
         });
     });
 
-    // --- Handlers ---
-    const updateAppointmentStatus = (id: number, newStatus: 'booked' | 'completed' | 'cancelled' | 'rescheduled') => {
-        setAppointmentList(prev =>
-            prev.map(appt => (appt.id === id ? { ...appt, status: newStatus } : appt))
-        );
-        localStorage.setItem('appointmentList', JSON.stringify(appointmentList()));
-        toast.success(`Status appointment berhasil diubah ke ${newStatus}.`);
-        setShowStatusModal(false);
-        setSelectedAppointment(null);
-    };
+    
+
+    const updateAppointmentStatus = (
+  id: number,
+  newStatus: 'booked' | 'completed' | 'cancelled' | 'rescheduled' | 'paid'
+) => {
+  const updated = appointmentList().map(app =>
+    app.id === id ? { ...app, status: newStatus } : app
+  );
+  setAppointmentList(updated);
+  localStorage.setItem('appointmentList', JSON.stringify(updated));
+  toast.success(`Status appointment berhasil diubah ke ${newStatus}.`);
+};
+
 
     const openStatusModal = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
@@ -189,17 +194,18 @@ const AppointmentSchedulePage: Component = () => {
                     <div class="w-full md:w-auto">
                         <label for="filter-status" class="block text-sm font-medium text-gray-700 mb-1">Filter Status</label>
                         <select
-                            id="filter-status"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            value={filterStatus()}
-                            onInput={(e) => setFilterStatus(e.target.value)}
-                        >
-                            <option value="all">Semua Status</option>
-                            <option value="booked">Booked</option>
-                            <option value="completed">Completed</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="rescheduled">Rescheduled</option>
-                        </select>
+  value={filterStatus()}
+  onInput={(e) => setFilterStatus(e.currentTarget.value)}
+  class="px-3 py-2 border rounded-lg"
+>
+  <option value="all">Semua Status</option>
+  <option value="booked">Dijadwalkan</option>
+  <option value="completed">Selesai</option>
+  <option value="cancelled">Dibatalkan</option>
+  <option value="rescheduled">Diubah Jadwal</option>
+  <option value="paid">Sudah Dibayar</option>
+</select>
+
                     </div>
 
                     <button

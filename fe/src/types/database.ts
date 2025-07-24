@@ -78,7 +78,7 @@ export interface Appointment {
     dokterId: number;
     treatmentIds: number[];
     tanggal: string; // 'YYYY-MM-DD'
-    status: 'booked' | 'completed' | 'cancelled' | 'rescheduled';
+    status: 'booked' | 'completed' | 'cancelled' | 'rescheduled' | 'paid';
     isInitialSkinAnalysis: boolean; // Jika appointment ini adalah untuk analisis kulit awal
     // NEW: Link ke hasil analisis/progress jika sudah selesai
     skinAnalysisId?: number; // ID dari SkinAnalysis jika ini adalah appointment analisis kulit
