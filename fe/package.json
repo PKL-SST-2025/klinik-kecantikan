@@ -13,6 +13,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/vite": "^4.0.7",
+    "@types/axios": "^0.9.36",
     "autoprefixer": "^10.4.21",
     "flowbite": "^3.1.2",
     "tailwindcss": "^4.1.11",
@@ -26,7 +27,9 @@
     "ag-grid-community": "^31.1.1",
     "ag-grid-enterprise": "^31.3.4",
     "ag-grid-solid": "^31.1.1",
+    "axios": "^1.11.0",
     "dayjs": "^1.11.13",
+    "jwt-decode": "^4.0.0",
     "lucide-solid": "^0.523.0",
     "solid-ag-grid": "^0.0.230",
     "solid-js": "^1.9.5",

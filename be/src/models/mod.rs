@@ -1,0 +1,9 @@
+pub mod user;
+pub mod product;
+pub mod treatment;
+pub mod dokter;
+pub mod pasien;
+pub mod appointment;
+pub mod treatment_progress;
+pub mod skin_analysis;
+pub mod invoice;

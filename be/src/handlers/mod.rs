@@ -1,0 +1,10 @@
+pub mod user_handler;
+pub mod protected_handler;
+pub mod product_handler;
+pub mod treatment_handler;
+pub mod dokter_handler;
+pub mod pasien_handler;
+pub mod appointment_handler;
+pub mod treatment_progress_handler;
+pub mod skin_analysis_handler;
+pub mod invoice_handler;

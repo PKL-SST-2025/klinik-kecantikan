@@ -1,12 +1,24 @@
 [package]
-name = "be"
+name = "klinik_be"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-actix-web = "4"
+actix-web = { version = "4", features = ["macros"] }
+actix-cors = "0.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-uuid = { version = "1.0", features = ["v4", "serde"] } # Untuk generate ID unik
-actix-cors = "0.6"
+dotenvy = "0.15"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["serde", "v4"] }
+
+# Supabase integration
+supabase_rs = "0.1" # Atau library lain yang relevan
+
+# Untuk otentikasi JWT
+jsonwebtoken = "8"
+
+reqwest = { version = "0.11", features = ["json"] }
+
+actix-http = "3.11.0"

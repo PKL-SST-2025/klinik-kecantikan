@@ -1,0 +1,9 @@
+pub mod user_service;
+pub mod treatment_service;
+pub mod product_service;
+pub mod dokter_service;
+pub mod pasien_service;
+pub mod appointment_service;
+pub mod treatment_progress_service;
+pub mod skin_analysis_service;
+pub mod invoice_service;

@@ -1,0 +1,9 @@
+pub mod user_dto;
+pub mod product_dto;
+pub mod treatment_dto;
+pub mod dokter_dto;
+pub mod pasien_dto;
+pub mod appointment_dto;
+pub mod treatment_progress_dto;
+pub mod skin_analysis_dto;
+pub mod invoice_dto;

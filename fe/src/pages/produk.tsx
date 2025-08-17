@@ -1,113 +1,240 @@
-import { Component, createSignal, createMemo, onMount, createEffect } from 'solid-js';
+import { createSignal, createMemo, onMount, createEffect, Component, JSX } from 'solid-js';
 import AgGridSolid from 'solid-ag-grid';
 import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
-import '../styles/ag-custom-purple.css'; // Import custom styles for AG Grid
-import { Plus, Edit, Trash2, Package, Clock, DollarSign, Hash } from 'lucide-solid';
+import '../styles/ag-custom-purple.css';
+import { Plus, Edit, Trash2, Package, Clock, DollarSign, Hash, AlignLeft } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
-import { addNotification, removeNotificationByKeyword } from '../stores/notificationStores';// Import notification store
-import dayjs from 'dayjs';
-import { notifications, setNotifications } from '../stores/notificationStores';
-import type { Produk, Treatment } from '../types/database'; // Import types for Produk and Treatment
+import { addNotification, removeNotificationByKeyword, notifications } from '../stores/notificationStores';
 
 type TabType = 'produk' | 'treatment';
 
+// Tipe data yang sesuai dengan backend Rust
+interface ProdukFromBackend {
+  id: string; // UUID dari backend
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+}
+
+interface TreatmentFromBackend {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  estimated_time: number;
+}
+
 const ProdukTreatmentPage: Component = () => {
-  // State management
   const [activeTab, setActiveTab] = createSignal<TabType>('produk');
-  const [produkList, setProdukList] = createSignal<Produk[]>([]);
-  const [treatmentList, setTreatmentList] = createSignal<Treatment[]>([]);
+  const [produkList, setProdukList] = createSignal<ProdukFromBackend[]>([]);
+  const [treatmentList, setTreatmentList] = createSignal<TreatmentFromBackend[]>([]);
   const [isModalOpen, setIsModalOpen] = createSignal(false);
-  const [editingItem, setEditingItem] = createSignal<Produk | Treatment | null>(null);
+  const [editingItem, setEditingItem] = createSignal<ProdukFromBackend | TreatmentFromBackend | null>(null);
   const [gridApi, setGridApi] = createSignal<GridApi | null>(null);
-  // NEW SIGNAL: Menandakan apakah data awal sudah dimuat
   const [isDataLoaded, setIsDataLoaded] = createSignal(false);
 
-  // Form state (tetap sama)
   const [formData, setFormData] = createSignal({
-    nama: '',
-    stok: 0,
-    harga: 0,
-    estimasiWaktu: 0
+    name: '',
+    description: '',
+    stock: 0,
+    price: 0,
+    estimated_time: 0,
   });
 
-  // Initialize with sample data or data from localStorage
+  // --- API Functions for Produk ---
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/api/products');
+      if (response.ok) {
+        const data: ProdukFromBackend[] = await response.json();
+        setProdukList(data);
+      } else {
+        toast.error('Gagal memuat data produk.');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Gagal terhubung ke server.');
+    }
+  };
+
+  const createProduct = async (data: any) => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        toast.success('Produk berhasil ditambahkan.');
+        fetchProducts();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal menambah produk: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  const updateProduct = async (id: string, data: any) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8080/api/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        toast.success('Produk berhasil diupdate.');
+        fetchProducts();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal mengupdate produk: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8080/api/products/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        toast.success('Produk berhasil dihapus.');
+        fetchProducts();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal menghapus produk: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  // --- API Functions for Treatment ---
+  const fetchTreatments = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/api/treatments');
+      if (response.ok) {
+        const data: TreatmentFromBackend[] = await response.json();
+        setTreatmentList(data);
+      } else {
+        toast.error('Gagal memuat data treatment.');
+      }
+    } catch (error) {
+      console.error('Error fetching treatments:', error);
+      toast.error('Gagal terhubung ke server.');
+    }
+  };
+
+  const createTreatment = async (data: any) => {
+    try {
+      const response = await fetch('http://127.0.0.1:8080/api/treatments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        toast.success('Treatment berhasil ditambahkan.');
+        fetchTreatments();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal menambah treatment: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  const updateTreatment = async (id: string, data: any) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8080/api/treatments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        toast.success('Treatment berhasil diupdate.');
+        fetchTreatments();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal mengupdate treatment: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  const deleteTreatment = async (id: string) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8080/api/treatments/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        toast.success('Treatment berhasil dihapus.');
+        fetchTreatments();
+        return true;
+      } else {
+        const errorText = await response.text();
+        toast.error(`Gagal menghapus treatment: ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      toast.error('Gagal terhubung ke server.');
+      return false;
+    }
+  };
+
+  // --- Lifecycle Hooks ---
   onMount(() => {
-    console.log('onMount: Initializing data...');
-    const storedProduk = localStorage.getItem('produkList');
-    const storedTreatment = localStorage.getItem('treatmentList');
-
-    if (storedProduk) {
-      const parsedProduk = JSON.parse(storedProduk);
-      setProdukList(parsedProduk);
-      console.log('onMount: Produk loaded from localStorage:', parsedProduk);
-    } else {
-      const sampleProduk = [
-        { id: 1, nama: 'Serum Vitamin C', stok: 25, harga: 150000 },
-        { id: 2, nama: 'Moisturizer Anti-Aging', stok: 18, harga: 280000 },
-        { id: 3, nama: 'Sunscreen SPF 50', stok: 32, harga: 120000 },
-      ];
-      setProdukList(sampleProduk);
-      console.log('onMount: Produk (sample data):', sampleProduk);
-    }
-
-    if (storedTreatment) {
-      const parsedTreatment = JSON.parse(storedTreatment);
-      setTreatmentList(parsedTreatment);
-      console.log('onMount: Treatment loaded from localStorage:', parsedTreatment);
-    } else {
-      const sampleTreatment = [
-        { id: 1, nama: 'Facial Hydrating', estimasiWaktu: 60, harga: 200000 },
-        { id: 2, nama: 'Chemical Peeling', estimasiWaktu: 90, harga: 350000 },
-        { id: 3, nama: 'Microneedling', estimasiWaktu: 75, harga: 450000 },
-      ];
-      setTreatmentList(sampleTreatment);
-      console.log('onMount: Treatment (sample data):', sampleTreatment);
-    }
-
-    // NEW: Set isDataLoaded to true AFTER all initial data is set
+    fetchProducts();
+    fetchTreatments();
     setIsDataLoaded(true);
-    console.log('onMount: Data loading complete, isDataLoaded set to true.');
   });
 
-  // Effect to save data to localStorage whenever lists change (tetap sama)
   createEffect(() => {
-    console.log('createEffect (localStorage): Saving data to localStorage...');
-    localStorage.setItem('produkList', JSON.stringify(produkList()));
-    localStorage.setItem('treatmentList', JSON.stringify(treatmentList()));
+    if (activeTab() === 'produk' && isDataLoaded()) {
+      const lowStokProduk = produkList().filter(p => p.stock <= 5);
+      const existingMessages = new Set(notifications().map(n => n.message));
+
+      lowStokProduk.forEach((produk) => {
+        const message = `Stok produk "${produk.name}" menipis (${produk.stock} pcs)`;
+        if (!existingMessages.has(message)) {
+          addNotification(message);
+        }
+      });
+    }
   });
 
-  
-
-  // Effect to size columns when gridApi is available or tab changes (tetap sama)
   createEffect(() => {
-    console.log('createEffect (gridApi): Checking gridApi for sizeColumnsToFit...');
     const api = gridApi();
     if (api) {
-      console.log('createEffect (gridApi): gridApi available, calling sizeColumnsToFit()...');
       setTimeout(() => api.sizeColumnsToFit(), 0);
-    } else {
-      console.log('createEffect (gridApi): gridApi not yet available.');
     }
   });
-  // Effect to notify when stok produk menipis
-createEffect(() => {
-  if (activeTab() === 'produk' && isDataLoaded()) {
-    const lowStokProduk = produkList().filter(p => p.stok <= 5);
-    const existingMessages = new Set(notifications().map(n => n.message));
 
-    lowStokProduk.forEach((produk) => {
-      const message = `Stok produk "${produk.nama}" menipis (${produk.stok} pcs)`;
-      if (!existingMessages.has(message)) {
-        addNotification(message);
-        console.log('Notification added:', message);
-      }
-    });
-  }
-});
-  // ... (handleActionClick, produkColumns, treatmentColumns tetap sama) ...
-  const handleActionClick = (action: string, id: number) => {
+  // --- Handlers & AG-Grid Column Definitions ---
+
+  const handleActionClick = (action: string, id: string) => {
     if (action === 'edit') {
       handleEdit(id);
     } else if (action === 'delete') {
@@ -115,25 +242,30 @@ createEffect(() => {
     }
   };
 
-  // AG-Grid column definitions for Produk
   const produkColumns = createMemo((): ColDef[] => {
-    console.log('createMemo: Produk Columns re-calculated.');
     return [
-      { field: 'id', headerName: 'ID', width: 80, sortable: true },
-      { field: 'nama', headerName: 'Nama Produk', flex: 1, sortable: true },
+      { field: 'id', headerName: 'ID', hide: true },
+      { field: 'name', headerName: 'Nama Produk', flex: 1, sortable: true },
+      { field: 'description', headerName: 'Deskripsi', flex: 2, sortable: true },
       {
-        field: 'stok',
+        field: 'stock',
         headerName: 'Stok',
         width: 100,
         sortable: true,
-        valueFormatter: (params: any) => `${params.value} pcs`
+        valueFormatter: (params: any) => `${params.value} pcs`,
+        cellStyle: (params) => {
+          if (params.value <= 5) {
+            return { color: '#ff69b4', 'font-weight': 'bold' };
+          }
+          return null;
+        },
       },
       {
-        field: 'harga',
+        field: 'price',
         headerName: 'Harga',
         width: 130,
         sortable: true,
-        valueFormatter: (params: any) => `Rp ${params.value.toLocaleString('id-ID')}`
+        valueFormatter: (params: any) => `Rp ${params.value.toLocaleString('id-ID')}`,
       },
       {
         headerName: 'Aksi',
@@ -157,30 +289,29 @@ createEffect(() => {
               </button>
             </div>
           );
-        }
-      }
+        },
+      },
     ];
   });
 
-  // AG-Grid column definitions for Treatment
   const treatmentColumns = createMemo((): ColDef[] => {
-    console.log('createMemo: Treatment Columns re-calculated.');
     return [
-      { field: 'id', headerName: 'ID', width: 80, sortable: true },
-      { field: 'nama', headerName: 'Nama Treatment', flex: 1, sortable: true },
+      { field: 'id', headerName: 'ID', hide: true },
+      { field: 'name', headerName: 'Nama Treatment', flex: 1, sortable: true },
+      { field: 'description', headerName: 'Deskripsi', flex: 2, sortable: true },
       {
-        field: 'estimasiWaktu',
+        field: 'estimated_time',
         headerName: 'Estimasi Waktu',
         width: 150,
         sortable: true,
-        valueFormatter: (params: any) => `${params.value} menit`
+        valueFormatter: (params: any) => `${params.value} menit`,
       },
       {
-        field: 'harga',
+        field: 'price',
         headerName: 'Harga',
         width: 130,
         sortable: true,
-        valueFormatter: (params: any) => `Rp ${params.value.toLocaleString('id-ID')}`
+        valueFormatter: (params: any) => `Rp ${params.value.toLocaleString('id-ID')}`,
       },
       {
         headerName: 'Aksi',
@@ -204,156 +335,118 @@ createEffect(() => {
               </button>
             </div>
           );
-        }
-      }
+        },
+      },
     ];
   });
-  // Event handlers (tetap sama, kecuali onGridReady dan handleTabChange jika ada setTimeout)
+
   const onGridReady = (params: GridReadyEvent) => {
-    console.log('onGridReady: Grid API is ready.');
     setGridApi(params.api);
-    params.api.sizeColumnsToFit(); // Initial column sizing
+    params.api.sizeColumnsToFit();
   };
 
-  // ... (handleEdit, handleDelete, handleSubmit, closeModal, openAddModal tetap sama) ...
-    // Handler for editing an item
-  const handleEdit = (id: number) => {
-    console.log('handleEdit: Attempting to edit item with ID:', id);
+  const handleEdit = (id: string) => {
     if (activeTab() === 'produk') {
       const item = produkList().find(p => p.id === id);
       if (item) {
         setEditingItem(item);
         setFormData({
-          nama: item.nama,
-          stok: item.stok,
-          harga: item.harga,
-          estimasiWaktu: 0 // Default to 0 for produk, as it's not applicable
+          name: item.name,
+          description: item.description,
+          stock: item.stock,
+          price: item.price,
+          estimated_time: 0,
         });
         setIsModalOpen(true);
-        console.log('handleEdit: Opened modal for editing Produk.');
       }
     } else {
       const item = treatmentList().find(t => t.id === id);
       if (item) {
         setEditingItem(item);
         setFormData({
-          nama: item.nama,
-          stok: 0, // Default to 0 for treatment, as it's not applicable
-          harga: item.harga,
-          estimasiWaktu: item.estimasiWaktu
+          name: item.name,
+          description: item.description,
+          stock: 0,
+          price: item.price,
+          estimated_time: item.estimated_time,
         });
         setIsModalOpen(true);
-        console.log('handleEdit: Opened modal for editing Treatment.');
       }
     }
   };
 
-  // Handler for deleting an item
-  const handleDelete = (id: number) => {
-    console.log('handleDelete: Attempting to delete item with ID:', id);
+  const handleDelete = (id: string) => {
     if (activeTab() === 'produk') {
-      setProdukList(prev => prev.filter(p => p.id !== id));
-      toast.success('Produk berhasil dihapus');
-      console.log('Produk deleted:', id);
+      deleteProduct(id);
     } else {
-      setTreatmentList(prev => prev.filter(t => t.id !== id));
-      toast.success('Treatment berhasil dihapus');
-      console.log('Treatment deleted:', id);
+      deleteTreatment(id);
     }
   };
 
-  // Handler for form submission (Add/Edit)
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    console.log('handleSubmit: Submitting form. Active tab:', activeTab(), 'Form Data:', formData());
-
     if (activeTab() === 'produk') {
-      const newProduk: Produk = {
-        id: editingItem() ? editingItem()!.id : Date.now(), // Use existing ID or new unique ID
-        nama: formData().nama,
-        stok: formData().stok,
-        harga: formData().harga
+      const data = {
+        name: formData().name,
+        description: formData().description,
+        price: formData().price,
+        stock: formData().stock,
       };
-
       if (editingItem()) {
-        setProdukList(prev => prev.map(p => p.id === newProduk.id ? newProduk : p));
-        toast.success('Produk berhasil diupdate');
-        console.log('Produk updated:', newProduk);
-      } 
-       if (newProduk.stok > 5) {
-    removeNotificationByKeyword(`Stok produk "${newProduk.nama}" menipis`);
-  }
-
-      else {
-        setProdukList(prev => [...prev, newProduk]);
-        toast.success('Produk berhasil ditambahkan');
-        console.log('Produk added:', newProduk);
+        const id = (editingItem() as ProdukFromBackend).id;
+        updateProduct(id, data);
+      } else {
+        createProduct(data);
       }
     } else {
-      const newTreatment: Treatment = {
-        id: editingItem() ? editingItem()!.id : Date.now(), // Use existing ID or new unique ID
-        nama: formData().nama,
-        estimasiWaktu: formData().estimasiWaktu,
-        harga: formData().harga
+      const data = {
+        name: formData().name,
+        description: formData().description,
+        price: formData().price,
+        estimated_time: formData().estimated_time,
       };
-
       if (editingItem()) {
-        setTreatmentList(prev => prev.map(t => t.id === newTreatment.id ? newTreatment : t));
-        toast.success('Treatment berhasil diupdate');
-        console.log('Treatment updated:', newTreatment);
+        const id = (editingItem() as TreatmentFromBackend).id;
+        updateTreatment(id, data);
       } else {
-        setTreatmentList(prev => [...prev, newTreatment]);
-        toast.success('Treatment berhasil ditambahkan');
-        console.log('Treatment added:', newTreatment);
+        createTreatment(data);
       }
     }
-
     closeModal();
   };
 
-  // Close modal handler
   const closeModal = () => {
-    console.log('closeModal: Closing modal.');
     setIsModalOpen(false);
     setEditingItem(null);
-    setFormData({ nama: '', stok: 0, harga: 0, estimasiWaktu: 0 }); // Reset form data
+    setFormData({ name: '', description: '', stock: 0, price: 0, estimated_time: 0 });
   };
 
-  // Open add modal handler
   const openAddModal = () => {
-    console.log('openAddModal: Opening add modal.');
-    setEditingItem(null); // Ensure no item is being edited when adding
-    setFormData({ nama: '', stok: 0, harga: 0, estimasiWaktu: 0 }); // Clear form
+    setEditingItem(null);
+    setFormData({ name: '', description: '', stock: 0, price: 0, estimated_time: 0 });
     setIsModalOpen(true);
   };
 
   const handleTabChange = (tab: TabType) => {
-    console.log('handleTabChange: Switching tab to:', tab);
     setActiveTab(tab);
     if (gridApi()) {
       setTimeout(() => gridApi()!.sizeColumnsToFit(), 0);
     }
   };
 
-  // Memoized rowData for AgGridSolid
   const rowDataToDisplay = createMemo(() => {
-    const data = activeTab() === 'produk' ? produkList() : treatmentList();
-    console.log(`Memoized rowDataToDisplay for tab '${activeTab()}' is:`, data);
-    return data;
+    return activeTab() === 'produk' ? produkList() : treatmentList();
   });
 
   return (
     <div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4 md:p-6 font-sans">
       <Toaster position="top-right" />
 
-      {/* ... (Header, Tabs, Content Card header tetap sama) ... */}
-        {/* Header Section */}
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Produk & Treatment</h1>
         <p class="text-gray-600">Kelola produk dan treatment yang tersedia di klinik kecantikan</p>
       </div>
 
-      {/* Tabs Navigation */}
       <div class="mb-6">
         <nav class="flex space-x-8 border-b border-gray-200">
           <button
@@ -384,9 +477,8 @@ createEffect(() => {
           </button>
         </nav>
       </div>
-      {/* Main Content Card (Table and Add Button) */}
+
       <div class="bg-white/70 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl p-6 md:p-8">
-        {/* Header with Add Button */}
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
             <h2 class="text-2xl font-semibold text-gray-900">
@@ -407,33 +499,24 @@ createEffect(() => {
           </button>
         </div>
 
-        {/* AG-Grid Table */}
         <div class="ag-theme-alpine rounded-xl overflow-hidden border border-gray-200" style={{ height: '500px', width: '100%' }}>
-          {/* NEW: Conditional rendering of AgGridSolid */}
           {isDataLoaded() ? (
-            <>
-              {console.log('Rendering AgGridSolid. Props:', {
-                columnDefs: activeTab() === 'produk' ? produkColumns() : treatmentColumns(),
-                rowData: rowDataToDisplay(),
-                activeTab: activeTab()
-              })}
-              <AgGridSolid
-                columnDefs={activeTab() === 'produk' ? produkColumns() : treatmentColumns()}
-                rowData={rowDataToDisplay()}
-                onGridReady={onGridReady}
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                  filter: true,
-                  flex: 1,
-                  minWidth: 100
-                }}
-                pagination={true}
-                paginationPageSize={10}
-                domLayout="autoHeight"
-                animateRows={true}
-              />
-            </>
+            <AgGridSolid
+              columnDefs={activeTab() === 'produk' ? produkColumns() : treatmentColumns()}
+              rowData={rowDataToDisplay()}
+              onGridReady={onGridReady}
+              defaultColDef={{
+                resizable: true,
+                sortable: true,
+                filter: true,
+                flex: 1,
+                minWidth: 100,
+              }}
+              pagination={true}
+              paginationPageSize={10}
+              domLayout="autoHeight"
+              animateRows={true}
+            />
           ) : (
             <div class="flex justify-center items-center h-full text-gray-500">
               Memuat data tabel...
@@ -442,11 +525,8 @@ createEffect(() => {
         </div>
       </div>
 
-      {/* ... (Modal for Add/Edit tetap sama) ... */}
-          {/* Modal for Add/Edit */}
       {isModalOpen() && (
         <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          {/* Modal content div. 'animate-scale-in' will handle initial opacity/scale. */}
           <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in">
             <div class="p-6">
               <h3 class="text-xl font-semibold text-gray-900 mb-6">
@@ -454,21 +534,34 @@ createEffect(() => {
               </h3>
 
               <form onSubmit={handleSubmit} class="space-y-4">
-                {/* Nama Field */}
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     Nama {activeTab() === 'produk' ? 'Produk' : 'Treatment'}
                   </label>
                   <input
                     type="text"
-                    value={formData().nama}
-                    onInput={(e) => setFormData(prev => ({ ...prev, nama: e.target.value }))}
+                    value={formData().name}
+                    onInput={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
-
-                {/* Stok Field (only for Produk) */}
+                
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="flex items-center gap-2">
+                      <AlignLeft size={16} />
+                      Deskripsi
+                    </div>
+                  </label>
+                  <textarea
+                    value={formData().description}
+                    onInput={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    required
+                  ></textarea>
+                </div>
+                
                 {activeTab() === 'produk' && (
                   <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -479,8 +572,8 @@ createEffect(() => {
                     </label>
                     <input
                       type="number"
-                      value={formData().stok}
-                      onInput={(e) => setFormData(prev => ({ ...prev, stok: parseInt(e.target.value) || 0 }))}
+                      value={formData().stock}
+                      onInput={(e) => setFormData(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
                       class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       min="0"
                       required
@@ -488,7 +581,6 @@ createEffect(() => {
                   </div>
                 )}
 
-                {/* Estimasi Waktu Field (only for Treatment) */}
                 {activeTab() === 'treatment' && (
                   <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -499,8 +591,8 @@ createEffect(() => {
                     </label>
                     <input
                       type="number"
-                      value={formData().estimasiWaktu}
-                      onInput={(e) => setFormData(prev => ({ ...prev, estimasiWaktu: parseInt(e.target.value) || 0 }))}
+                      value={formData().estimated_time}
+                      onInput={(e) => setFormData(prev => ({ ...prev, estimated_time: parseInt(e.target.value) || 0 }))}
                       class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                       min="0"
                       required
@@ -508,7 +600,6 @@ createEffect(() => {
                   </div>
                 )}
 
-                {/* Harga Field */}
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">
                     <div class="flex items-center gap-2">
@@ -518,15 +609,14 @@ createEffect(() => {
                   </label>
                   <input
                     type="number"
-                    value={formData().harga}
-                    onInput={(e) => setFormData(prev => ({ ...prev, harga: parseInt(e.target.value) || 0 }))}
+                    value={formData().price}
+                    onInput={(e) => setFormData(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
                     class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     min="0"
                     required
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div class="flex gap-3 pt-4">
                   <button
                     type="button"

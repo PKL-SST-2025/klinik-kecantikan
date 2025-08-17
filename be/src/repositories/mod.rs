@@ -1,0 +1,9 @@
+pub mod user_repo;
+pub mod product_repo;
+pub mod treatment_repo;
+pub mod dokter_repo;
+pub mod pasien_repo;
+pub mod appointment_repo;
+pub mod treatment_progress_repo;
+pub mod skin_analysis_repo;
+pub mod invoice_repo;

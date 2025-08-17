@@ -1,57 +1,67 @@
+// src/pages/login.tsx
 import { createSignal } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import { toast } from 'solid-toast';
 import { A } from '@solidjs/router';
-// Import useAuth Hook
-import { useAuth } from '../App'; // Asumsi App.tsx ada di direktori yang sama atau bisa disesuaikan
+// Import useAuth dari file Auth.tsx
+import { useAuth } from '../Auth'; 
+// Import LoginFormData dari file types
+import { LoginFormData } from '../types/user';
 import BgDashboard from '.././icons/bglogin.png';
+
 const Login = () => {
-  const navigate = useNavigate();
-  const { login: authLogin } = useAuth(); // Menggunakan fungsi login dari AuthContext
-  const [formData, setFormData] = createSignal({
-    email: '',
-    password: ''
-  });
+  const navigate = useNavigate();
+  const { login: authLogin } = useAuth(); 
+  
+  // Gunakan interface LoginFormData untuk sinyal formData
+  const [formData, setFormData] = createSignal<LoginFormData>({
+    email: '',
+    password: ''
+  });
+  
   const [isLoading, setIsLoading] = createSignal(false);
-  const [showPassword, setShowPassword] = createSignal(false);
+  const [showPassword, setShowPassword] = createSignal(false);
 
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault();
-    const data = formData();
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault();
+    const data = formData();
 
-    if (!data.email || !data.password) {
-      toast.error('Email dan password harus diisi');
-      return;
-    }
+    if (!data.email || !data.password) {
+      toast.error('Email dan password harus diisi');
+      return;
+    }
 
-    if (!data.email.includes('@')) {
-      toast.error('Format email tidak valid');
-      return;
-    }
+    if (!data.email.includes('@')) {
+      toast.error('Format email tidak valid');
+      return;
+    }
 
-    setIsLoading(true);
+    setIsLoading(true);
 
-    // --- Logika Verifikasi Login dari localStorage ---
-    try {
-      const success = await authLogin(data.email, data.password); // Memanggil login dari AuthContext
+    try {
+      // Panggil fungsi login dari AuthContext, bukan lagi fetch di sini
+      const success = await authLogin(data);
+      if (success) {
+        toast.success('Login berhasil!');
+        navigate('/dashboard');
+      } else {
+        // Pesan error sudah dihandle di Auth.tsx
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      toast.error('Terjadi kesalahan saat login.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (success) {
-        toast.success('Login berhasil!');
-        navigate('/dashboard'); // Arahkan ke dashboard
-      } else {
-        toast.error('Email atau password salah');
-      }
-    } catch (error) {
-      console.error("Error during login:", error);
-      toast.error('Terjadi kesalahan saat login.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const updateField = (field: keyof LoginFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+  
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword());
+  };
 
   return (
     <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">

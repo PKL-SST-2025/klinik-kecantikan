@@ -1,9 +1,9 @@
-//src/pages/pembayaran.tsx 
 import { createSignal, onMount, For, Component, createMemo, Show } from 'solid-js';
 import { Appointment, Pasien, Treatment, Produk, Invoice, InvoiceItem } from '../types/database';
 import toast, { Toaster } from 'solid-toast';
 import { ShoppingCart, DollarSign, User, PlusCircle, Trash2, Printer } from 'lucide-solid';
 import dayjs from 'dayjs';
+import api from '../api/api'; // Pastikan path ini benar
 
 const CheckoutPage: Component = () => {
     // --- State ---
@@ -12,25 +12,37 @@ const CheckoutPage: Component = () => {
     const [pasienList, setPasienList] = createSignal<Pasien[]>([]);
     const [treatmentList, setTreatmentList] = createSignal<Treatment[]>([]);
     const [productList, setProductList] = createSignal<Produk[]>([]);
+    const [loading, setLoading] = createSignal(false);
     
     const [activeInvoice, setActiveInvoice] = createSignal<Partial<Invoice> | null>(null);
     const [amountPaid, setAmountPaid] = createSignal(0);
 
     // --- Data Loading ---
-    onMount(() => {
-        const storedAppointments = localStorage.getItem('appointmentList');
-        if (storedAppointments) {
-            setCompletedAppointments(JSON.parse(storedAppointments).filter((a: Appointment) => a.status === 'completed'));
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [invoicesRes, appointmentsRes, pasiensRes, treatmentsRes, productsRes] = await Promise.all([
+                api.get('/invoices'),
+                api.get('/appointments', { params: { status: 'completed' } }), // Filter appointments by status
+                api.get('/pasiens'),
+                api.get('/treatments'),
+                api.get('/produks'),
+            ]);
+            setInvoiceList(invoicesRes.data);
+            setCompletedAppointments(appointmentsRes.data);
+            setPasienList(pasiensRes.data);
+            setTreatmentList(treatmentsRes.data);
+            setProductList(productsRes.data);
+        } catch (error) {
+            console.error("Gagal memuat data:", error);
+            toast.error("Gagal memuat data dari server.");
+        } finally {
+            setLoading(false);
         }
-        // Load other necessary data...
-        const storedPasien = localStorage.getItem('pasienList');
-        if (storedPasien) setPasienList(JSON.parse(storedPasien));
-        const storedTreatments = localStorage.getItem('treatmentList');
-        if (storedTreatments) setTreatmentList(JSON.parse(storedTreatments));
-        const storedProduk = localStorage.getItem('produkList');
-        if (storedProduk) setProductList(JSON.parse(storedProduk));
-        const storedInvoices = localStorage.getItem('invoiceList');
-        if (storedInvoices) setInvoiceList(JSON.parse(storedInvoices));
+    };
+
+    onMount(() => {
+        fetchData();
     });
 
     // --- Memoized Calculations ---
@@ -39,42 +51,42 @@ const CheckoutPage: Component = () => {
 
     // --- Handlers ---
     const createInvoiceFromAppointment = (app: Appointment) => {
-        const treatments = treatmentList().filter(t => app.treatmentIds.includes(t.id));
+        const treatments = treatmentList().filter(t => app.treatment_ids.includes(t.id));
         const invoiceItems: InvoiceItem[] = treatments.map(t => ({
             type: 'treatment',
-            itemId: t.id,
+            item_id: t.id,
             name: t.nama,
             quantity: 1,
-            pricePerUnit: t.harga,
+            price_per_unit: t.harga,
             subtotal: t.harga,
         }));
         
         setActiveInvoice({
-            appointmentId: app.id,
-            pasienId: app.pasienId,
+            appointment_id: app.id,
+            pasien_id: app.pasien_id,
             items: invoiceItems,
             status: 'pending',
-            paymentMethod: 'Cash',
+            payment_method: 'Cash',
         });
         setAmountPaid(0);
     };
 
     const handleAddProduct = (e: Event) => {
-        const productId = parseInt((e.target as HTMLSelectElement).value);
+        const productId = (e.target as HTMLSelectElement).value;
         if (!productId) return;
         const product = productList().find(p => p.id === productId);
         if (product && activeInvoice()) {
             const newItem: InvoiceItem = {
                 type: 'product',
-                itemId: product.id,
+                item_id: product.id,
                 name: product.nama,
                 quantity: 1,
-                pricePerUnit: product.harga,
+                price_per_unit: product.harga,
                 subtotal: product.harga,
             };
             setActiveInvoice(prev => ({ ...prev, items: [...(prev?.items || []), newItem] }));
         }
-        (e.target as HTMLSelectElement).value = '0';
+        (e.target as HTMLSelectElement).value = '';
     };
 
     const handleRemoveItem = (index: number) => {
@@ -85,8 +97,8 @@ const CheckoutPage: Component = () => {
         });
     };
 
-    const finishPayment = () => {
-        if (!activeInvoice() || !activeInvoice()!.pasienId) {
+    const finishPayment = async () => {
+        if (!activeInvoice() || !activeInvoice()!.pasien_id) {
             toast.error("Tidak ada invoice aktif.");
             return;
         }
@@ -95,48 +107,55 @@ const CheckoutPage: Component = () => {
             return;
         }
 
-        const finalInvoice: Invoice = {
-    ...activeInvoice(),
-    id: Date.now(),
-    tanggal: dayjs().format('YYYY-MM-DD'),
-    waktu: dayjs().format('HH:mm'),
-    totalAmount: totalAmount(),
-    amountPaid: amountPaid(),
-    change: changeAmount(),
-    status: 'paid',
-    kasirName: 'Admin',
-} as Invoice;
+        setLoading(true);
 
+        try {
+            const finalInvoice = {
+                ...activeInvoice(),
+                total_amount: totalAmount(),
+                amount_paid: amountPaid(),
+                change: changeAmount(),
+                tanggal: dayjs().format('YYYY-MM-DD'),
+                waktu: dayjs().format('HH:mm:ss'),
+                status: 'paid',
+                kasir_name: 'Admin',
+            };
 
-        // Save invoice to history
-        const updatedInvoices = [...invoiceList(), finalInvoice];
-        setInvoiceList(updatedInvoices);
-        localStorage.setItem('invoiceList', JSON.stringify(updatedInvoices));
+            // Post invoice to API
+            await api.post('/invoices', finalInvoice);
 
-        // Remove appointment from completed list
-        const allAppointments = JSON.parse(localStorage.getItem('appointmentList') || '[]');
-        const updatedAppointments = allAppointments.filter((a: Appointment) => a.id !== activeInvoice()!.appointmentId);
-        localStorage.setItem('appointmentList', JSON.stringify(updatedAppointments));
+            // Update appointment status to 'paid' via API
+            await api.patch(`/appointments/${activeInvoice()!.appointment_id}`, { status: 'paid' });
 
-        // Update UI - Remove from completed appointments queue
-        setCompletedAppointments(prev => prev.filter(a => a.id !== activeInvoice()!.appointmentId));
-        
-        // Clear active invoice
-        setActiveInvoice(null);
-        setAmountPaid(0);
+            toast.success("Pembayaran berhasil! Invoice berhasil disimpan.");
+            
+            // Refresh data from the server
+            await fetchData();
+            
+            // Clear active invoice
+            setActiveInvoice(null);
+            setAmountPaid(0);
 
-        toast.success("Pembayaran berhasil! Invoice ditambahkan ke riwayat.");
+        } catch (error) {
+            console.error("Gagal menyelesaikan pembayaran:", error);
+            toast.error("Gagal menyelesaikan pembayaran. Silakan coba lagi.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     // Filter dan sort invoice history
     const paidInvoices = createMemo(() => 
         invoiceList()
             .filter(inv => inv.status === 'paid')
-            .sort((a, b) => b.id - a.id) // Sort by newest first
+            .sort((a, b) => dayjs(b.tanggal + ' ' + b.waktu).unix() - dayjs(a.tanggal + ' ' + a.waktu).unix()) // Sort by newest first
     );
 
-    
-
+    // Helper untuk mencari nama pasien
+    const getPasienName = (pasienId: string) => {
+        const pasien = pasienList().find(p => p.id === pasienId);
+        return pasien?.nama_lengkap || 'Pasien Tidak Ditemukan';
+    };
 
     return (
         <div class="p-8 bg-gray-50 min-h-screen">
@@ -151,31 +170,33 @@ const CheckoutPage: Component = () => {
                         Antrian Pembayaran
                     </h2>
                     <div class="space-y-2 max-h-96 overflow-y-auto">
-                        <For each={completedAppointments()} fallback={
-                            <div class="text-center text-gray-500 py-8">
-                                <ShoppingCart size={48} class="mx-auto mb-2 text-gray-300"/>
-                                <p>Tidak ada antrian pembayaran.</p>
-                            </div>
-                        }>
-                            {(app) => {
-                                const pasien = pasienList().find(p => p.id === app.pasienId);
-                                return (
-                                    <div
-                                        class={`p-3 rounded-md cursor-pointer transition-all duration-200 ${
-                                            activeInvoice()?.appointmentId === app.id 
-                                                ? 'bg-purple-600 text-white shadow-lg' 
-                                                : 'bg-gray-100 hover:bg-purple-100 hover:shadow-md'
-                                        }`}
-                                        onClick={() => createInvoiceFromAppointment(app)}
-                                    >
-                                        <div class="font-bold">{pasien?.namaLengkap || 'Unknown'}</div>
-                                        <div class="text-sm opacity-75">
-                                            {dayjs(app.tanggal).format("DD/MM/YYYY")}
+                        <Show when={!loading()} fallback={<p class="text-center text-gray-500">Memuat...</p>}>
+                            <For each={completedAppointments()} fallback={
+                                <div class="text-center text-gray-500 py-8">
+                                    <ShoppingCart size={48} class="mx-auto mb-2 text-gray-300"/>
+                                    <p>Tidak ada antrian pembayaran.</p>
+                                </div>
+                            }>
+                                {(app) => {
+                                    const pasien = pasienList().find(p => p.id === app.pasien_id);
+                                    return (
+                                        <div
+                                            class={`p-3 rounded-md cursor-pointer transition-all duration-200 ${
+                                                activeInvoice()?.appointment_id === app.id 
+                                                    ? 'bg-purple-600 text-white shadow-lg' 
+                                                    : 'bg-gray-100 hover:bg-purple-100 hover:shadow-md'
+                                            }`}
+                                            onClick={() => createInvoiceFromAppointment(app)}
+                                        >
+                                            <div class="font-bold">{pasien?.nama_lengkap || 'Unknown'}</div>
+                                            <div class="text-sm opacity-75">
+                                                {dayjs(app.tanggal).format("DD/MM/YYYY")}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            }}
-                        </For>
+                                    );
+                                }}
+                            </For>
+                        </Show>
                     </div>
                 </div>
 
@@ -190,7 +211,7 @@ const CheckoutPage: Component = () => {
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="text-2xl font-bold text-purple-700">Invoice</h2>
                             <p class="text-sm text-gray-600">
-                                Pasien: <span class="font-semibold">{pasienList().find(p => p.id === activeInvoice()?.pasienId)?.namaLengkap}</span>
+                                Pasien: <span class="font-semibold">{getPasienName(activeInvoice()!.pasien_id!)}</span>
                             </p>
                         </div>
 
@@ -202,7 +223,7 @@ const CheckoutPage: Component = () => {
                                         <div class="flex-grow">
                                             <p class="font-semibold text-gray-800">{item.name}</p>
                                             <p class="text-sm text-gray-600">
-                                                {item.quantity} x Rp {item.pricePerUnit.toLocaleString('id-ID')}
+                                                {item.quantity} x Rp {item.price_per_unit.toLocaleString('id-ID')}
                                             </p>
                                         </div>
                                         <p class="font-semibold text-purple-700 mr-4">
@@ -226,7 +247,7 @@ const CheckoutPage: Component = () => {
                                 onChange={handleAddProduct} 
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             >
-                                <option value="0">-- Pilih Produk --</option>
+                                <option value="">-- Pilih Produk --</option>
                                 <For each={productList()}>
                                     {(product) => (
                                         <option value={product.id}>
@@ -265,7 +286,7 @@ const CheckoutPage: Component = () => {
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
                                     <select 
                                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
-                                        onChange={(e) => setActiveInvoice(p => ({...p, paymentMethod: e.currentTarget.value}))}
+                                        onChange={(e) => setActiveInvoice(p => ({...p, payment_method: e.currentTarget.value}))}
                                     >
                                         <option>Cash</option>
                                         <option>Debit</option>
@@ -284,10 +305,10 @@ const CheckoutPage: Component = () => {
                             <button 
                                 onClick={finishPayment} 
                                 class="w-full py-4 text-lg font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                                disabled={amountPaid() < totalAmount()}
+                                disabled={amountPaid() < totalAmount() || loading()}
                             >
                                 <DollarSign class="mr-2" size={20}/> 
-                                Bayar & Selesaikan
+                                {loading() ? 'Memproses...' : 'Bayar & Selesaikan'}
                             </button>
                         </div>
                     </Show>
@@ -322,35 +343,32 @@ const CheckoutPage: Component = () => {
                             </thead>
                             <tbody>
                                 <For each={paidInvoices()}>
-                                    {(inv) => {
-                                        const pasien = pasienList().find(p => p.id === inv.pasienId);
-                                        return (
-                                            <tr class="hover:bg-gray-50 transition-colors">
-                                                <td class="p-3 border border-gray-200">
-                                                    {dayjs(inv.tanggal).format('DD/MM/YYYY')}
-                                                </td>
-                                                <td class="p-3 border border-gray-200">{inv.waktu}</td>
-                                                <td class="p-3 border border-gray-200 font-medium">
-                                                    {pasien?.namaLengkap || 'Pasien Tidak Ditemukan'}
-                                                </td>
-                                                <td class="p-3 border border-gray-200 font-semibold text-purple-700">
-                                                    Rp {inv.totalAmount.toLocaleString('id-ID')}
-                                                </td>
-                                                <td class="p-3 border border-gray-200">
-                                                    Rp {inv.amountPaid.toLocaleString('id-ID')}
-                                                </td>
-                                                <td class="p-3 border border-gray-200 text-green-600">
-                                                    Rp {inv.change.toLocaleString('id-ID')}
-                                                </td>
-                                                <td class="p-3 border border-gray-200">
-                                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                                                        {inv.paymentMethod}
-                                                    </span>
-                                                </td>
-                                                <td class="p-3 border border-gray-200">{inv.kasirName}</td>
-                                            </tr>
-                                        );
-                                    }}
+                                    {(inv) => (
+                                        <tr class="hover:bg-gray-50 transition-colors">
+                                            <td class="p-3 border border-gray-200">
+                                                {dayjs(inv.tanggal).format('DD/MM/YYYY')}
+                                            </td>
+                                            <td class="p-3 border border-gray-200">{inv.waktu}</td>
+                                            <td class="p-3 border border-gray-200 font-medium">
+                                                {getPasienName(inv.pasien_id)}
+                                            </td>
+                                            <td class="p-3 border border-gray-200 font-semibold text-purple-700">
+                                                Rp {inv.total_amount.toLocaleString('id-ID')}
+                                            </td>
+                                            <td class="p-3 border border-gray-200">
+                                                Rp {inv.amount_paid.toLocaleString('id-ID')}
+                                            </td>
+                                            <td class="p-3 border border-gray-200 text-green-600">
+                                                Rp {(inv.change_amount ?? 0).toLocaleString('id-ID')}
+                                            </td>
+                                            <td class="p-3 border border-gray-200">
+                                                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                                    {inv.payment_method}
+                                                </span>
+                                            </td>
+                                            <td class="p-3 border border-gray-200">{inv.kasir_name}</td>
+                                        </tr>
+                                    )}
                                 </For>
                             </tbody>
                         </table>
