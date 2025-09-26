@@ -4,8 +4,11 @@ import { Pasien, SkinAnalysis, TreatmentProgress, Appointment, TreatmentFromBack
 import { User, FileText, Stethoscope, Activity, Heart, Shield, Pill, Phone, Mail, Calendar, MapPin, IdCard, Users, AlertTriangle, MessageCircle, Clock, ArrowLeft, CheckCircle2, Edit, Trash2, Save, X } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import api from '../api/api';
 import { useNavigate, useSearchParams } from '@solidjs/router';
+
+dayjs.extend(relativeTime);
 
 const PasienDataPage: Component = () => {
     // Navigation setup

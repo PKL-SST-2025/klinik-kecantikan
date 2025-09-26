@@ -446,58 +446,7 @@ const AppointmentSchedulePage: Component = () => {
                 </div>
             </Show>
 
-            {/* Status Change Modal */}
-            <Show when={showStatusModal()}>
-                <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-gray-900 mb-4">Ubah Status Appointment</h3>
-                            <p class="text-gray-600 mb-6">
-                                Pilih status baru untuk appointment pasien: <br />
-                                <span class="font-semibold">{selectedAppointment() ? getPasienName(selectedAppointment()!.pasien_id) : ''}</span>
-                            </p>
-                            <div class="space-y-3 mb-6">
-                                <button
-                                    onClick={() => updateAppointmentStatus(selectedAppointment()!.id, 'booked')}
-                                    class="w-full p-3 text-left rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors duration-200"
-                                >
-                                    <span class="font-medium text-blue-800">Dijadwalkan</span>
-                                    <p class="text-sm text-blue-600">Appointment dikonfirmasi dan dijadwalkan</p>
-                                </button>
-                                <button
-                                    onClick={() => updateAppointmentStatus(selectedAppointment()!.id, 'completed')}
-                                    class="w-full p-3 text-left rounded-xl bg-green-50 hover:bg-green-100 border border-green-200 transition-colors duration-200"
-                                >
-                                    <span class="font-medium text-green-800">Selesai</span>
-                                    <p class="text-sm text-green-600">Appointment telah selesai dilakukan</p>
-                                </button>
-                                <button
-                                    onClick={() => updateAppointmentStatus(selectedAppointment()!.id, 'cancelled')}
-                                    class="w-full p-3 text-left rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 transition-colors duration-200"
-                                >
-                                    <span class="font-medium text-red-800">Dibatalkan</span>
-                                    <p class="text-sm text-red-600">Appointment dibatalkan</p>
-                                </button>
-                                <button
-                                    onClick={() => updateAppointmentStatus(selectedAppointment()!.id, 'paid')}
-                                    class="w-full p-3 text-left rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors duration-200"
-                                >
-                                    <span class="font-medium text-purple-800">Sudah Dibayar</span>
-                                    <p class="text-sm text-purple-600">Appointment selesai dan sudah dibayar</p>
-                                </button>
-                            </div>
-                            <div class="flex gap-3">
-                                <button
-                                    onClick={() => setShowStatusModal(false)}
-                                    class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl transition-colors duration-200"
-                                >
-                                    Batal
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </Show>
+           
 
             {/* Reschedule Modal */}
             <Show when={showRescheduleModal()}>
