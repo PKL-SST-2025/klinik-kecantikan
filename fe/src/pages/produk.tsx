@@ -7,25 +7,11 @@ import '../styles/ag-custom-purple.css';
 import { Plus, Edit, Trash2, Package, Clock, DollarSign, Hash, AlignLeft } from 'lucide-solid';
 import toast, { Toaster } from 'solid-toast';
 import { addNotification, removeNotificationByKeyword, notifications } from '../stores/notificationStores';
-
+import {ProdukFromBackend, TreatmentFromBackend} from '../types/database';
 type TabType = 'produk' | 'treatment';
 
 // Tipe data yang sesuai dengan backend Rust
-interface ProdukFromBackend {
-  id: string; // UUID dari backend
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-}
 
-interface TreatmentFromBackend {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  estimated_time: number;
-}
 
 const ProdukTreatmentPage: Component = () => {
   const [activeTab, setActiveTab] = createSignal<TabType>('produk');
@@ -118,9 +104,12 @@ const ProdukTreatmentPage: Component = () => {
         toast.error(`Gagal menghapus produk: ${errorText}`);
         return false;
       }
-    } catch (error) {
-      toast.error('Gagal terhubung ke server.');
-      return false;
+    }
+    catch (error) {
+        // This is the added catch block to handle network or other errors.
+        console.error('Error deleting product:', error);
+        toast.error('Gagal terhubung ke server.');
+        return false;
     }
   };
 

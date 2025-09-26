@@ -7,8 +7,8 @@ import {
   Pasien,
   Appointment,
   Invoice,
-  Treatment,
-  Produk,
+  TreatmentFromBackend,
+  ProdukFromBackend,
   Dokter
 } from '../types/database';
 import {
@@ -47,7 +47,7 @@ const Statistik = () => {
       return appointmentDate >= periodStart && appointmentDate <= today;
     });
 
-    const totalRevenue = recentInvoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
+    const totalRevenue = recentInvoices.reduce((sum, invoice) => sum + invoice.total_amount, 0);
     const totalAppointments = recentAppointments.length;
     const totalPatients = pasienList().length; // Total unique patients regardless of period filter
     const averageRevenuePerTransaction = recentInvoices.length > 0 ? totalRevenue / recentInvoices.length : 0;
@@ -67,16 +67,16 @@ const Statistik = () => {
     invoiceList().forEach(invoice => {
       invoice.items.forEach(item => {
         if (item.type === 'product') {
-          productCount[item.itemId] = (productCount[item.itemId] || 0) + item.quantity;
+          productCount[Number(item.item_id)] = (productCount[Number(item.item_id)] || 0) + item.quantity;
         }
       });
     });
 
     return Object.entries(productCount)
       .map(([id, count]) => {
-        const product = produkList().find(p => p.id === parseInt(id));
+        const product = produkList().find(p => Number(p.id) === parseInt(id));
         return {
-          product: product?.nama || `Produk ID ${id}`, // Fallback if product not found
+          product: product?.name || `Produk ID ${id}`, // Fallback if product not found
           sales: count
         };
       })
@@ -88,7 +88,7 @@ const Statistik = () => {
 
     invoiceList().forEach(invoice => {
       const date = invoice.tanggal;
-      revenueByDate[date] = (revenueByDate[date] || 0) + invoice.totalAmount;
+      revenueByDate[date] = (revenueByDate[date] || 0) + invoice.total_amount;
     });
 
     // Generate dates for the last 30 days to ensure continuity
@@ -110,7 +110,9 @@ const Statistik = () => {
     const methodCount: { [key: string]: number } = {};
 
     invoiceList().forEach(invoice => {
-      methodCount[invoice.paymentMethod] = (methodCount[invoice.paymentMethod] || 0) + 1;
+      if (invoice.payment_method !== null && invoice.payment_method !== undefined) {
+        methodCount[invoice.payment_method] = (methodCount[invoice.payment_method] || 0) + 1;
+      }
     });
 
     return Object.entries(methodCount).map(([method, count]) => ({
@@ -126,7 +128,7 @@ const Statistik = () => {
     invoiceList().forEach(invoice => {
       const date = new Date(invoice.tanggal);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + invoice.totalAmount;
+      monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + invoice.total_amount;
     });
 
     // Generate keys for the last 12 months to ensure continuity
@@ -152,16 +154,16 @@ const Statistik = () => {
     invoiceList().forEach(invoice => {
       invoice.items.forEach(item => {
         if (item.type === 'treatment') {
-          treatmentRevenue[item.itemId] = (treatmentRevenue[item.itemId] || 0) + item.subtotal;
+          treatmentRevenue[Number(item.item_id)] = (treatmentRevenue[Number(item.item_id)] || 0) + item.subtotal;
         }
       });
     });
 
     return Object.entries(treatmentRevenue)
       .map(([id, revenue]) => {
-        const treatment = treatmentList().find(t => t.id === parseInt(id));
+        const treatment = treatmentList().find(t => Number(t.id) === parseInt(id));
         return {
-          treatment: treatment?.nama || `Treatment ID ${id}`, // Fallback if treatment not found
+          treatment: treatment?.name || `Treatment ID ${id}`, // Fallback if treatment not found
           revenue: revenue
         };
       })
@@ -193,14 +195,14 @@ const Statistik = () => {
     const patientSpending: { [key: number]: number } = {};
 
     invoiceList().forEach(invoice => {
-      patientSpending[invoice.pasienId] = (patientSpending[invoice.pasienId] || 0) + invoice.totalAmount;
+      patientSpending[Number(invoice.pasien_id)] = (patientSpending[Number(invoice.pasien_id)] || 0) + invoice.total_amount;
     });
 
     return Object.entries(patientSpending)
       .map(([pasienId, totalSpending]) => {
-        const pasien = pasienList().find(p => p.id === parseInt(pasienId));
+        const pasien = pasienList().find(p => Number(p.id) === parseInt(pasienId));
         return {
-          pasienName: pasien?.namaLengkap || `Pasien ID ${pasienId}`,
+          pasienName: pasien?.nama_lengkap || `Pasien ID ${pasienId}`,
           totalSpending: totalSpending
         };
       })
@@ -500,11 +502,11 @@ const Statistik = () => {
               </thead>
               <tbody>
                 {produkList().map((produk, index) => {
-                  const status = getStockStatus(produk.stok);
+                  const status = getStockStatus(produk.stock);
                   return (
                     <tr class={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td class="px-6 py-4 text-gray-800">{produk.nama}</td>
-                      <td class="px-6 py-4 text-gray-800">{produk.stok}</td>
+                      <td class="px-6 py-4 text-gray-800">{produk.name}</td>
+                      <td class="px-6 py-4 text-gray-800">{produk.stock}</td>
                       <td class="px-6 py-4">
                         <span class={`px-3 py-1 rounded-full text-sm font-medium ${status.color}`}>
                           {status.text}

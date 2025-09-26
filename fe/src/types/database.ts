@@ -1,17 +1,33 @@
-// src/interfaces.ts (atau di mana pun Anda mendefinisikan tipe data)
+// src/database.ts (atau di mana pun Anda mendefinisikan tipe data)
 
-export interface Produk {
-    id: string; // Diubah dari number ke string (UUID)
-    nama: string;
-    stok: number;
-    harga: number;
+ export interface ProdukFromBackend {
+
+  id: string; // UUID dari backend
+
+  name: string;
+
+  description: string;
+
+  price: number;
+
+  stock: number;
+
 }
 
-export interface Treatment {
-    id: string; // Diubah dari number ke string (UUID)
-    nama: string;
-    estimasi_waktu: number; // Diubah sesuai snake_case backend
-    harga: number;
+
+
+export interface TreatmentFromBackend {
+
+  id: string;
+
+  name: string;
+
+  description: string;
+
+  price: number;
+
+  estimated_time: number;
+
 }
 
 export interface DailySchedule {
@@ -48,7 +64,7 @@ export interface TreatmentProgress {
 }
 
 export interface Pasien {
-    id: string; // Diubah dari number ke string (UUID)
+    id?: string; // Diubah dari number ke string (UUID)
     nama_lengkap: string; // Diubah sesuai snake_case backend
     no_telepon: string; // Diubah sesuai snake_case backend
     email: string | null;

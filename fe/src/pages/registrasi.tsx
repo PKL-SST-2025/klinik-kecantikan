@@ -4,26 +4,30 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/id';
 import toast, { Toaster } from 'solid-toast';
-import { Pasien, Dokter, Treatment, Appointment } from '../types/database'; // Pastikan path ini benar
-import api from '../api/api'; // <--- Perubahan: Impor instance Axios
+import { Pasien, Dokter, TreatmentFromBackend, Appointment } from '../types/database';
+import api from '../api/api';
 
 dayjs.extend(isSameOrBefore);
 dayjs.locale('id');
 
 // --- Icons (from lucide-solid) ---
-import { User, Phone, Mail, Calendar, Clock, Stethoscope, Tag, Pill, MessageCircle, MapPin, IdCard, Activity, AlertTriangle, Users, Heart, MessageSquare, HeartHandshake, CheckCheck } from 'lucide-solid';
+import { User, Phone, Mail, Calendar, Clock, Stethoscope, Tag, Pill, MessageCircle, MapPin, IdCard, Activity, AlertTriangle, Users, Heart, MessageSquare, HeartHandshake, CheckCheck, Search } from 'lucide-solid';
 
 const BookingPage: Component = () => {
 
     // --- State Management ---
     const [pasienList, setPasienList] = createSignal<Pasien[]>([]);
     const [dokterList, setDokterList] = createSignal<Dokter[]>([]);
-    const [treatmentList, setTreatmentList] = createSignal<Treatment[]>([]);
+    const [treatmentList, setTreatmentList] = createSignal<TreatmentFromBackend[]>([]);
     const [appointmentList, setAppointmentList] = createSignal<Appointment[]>([]);
 
     // Form states for Pasien
     const [isNewPatient, setIsNewPatient] = createSignal(true);
     const [selectedPasienId, setSelectedPasienId] = createSignal<string | null>(null);
+    
+    // Search states for existing patient
+    const [searchQuery, setSearchQuery] = createSignal('');
+    const [showSearchResults, setShowSearchResults] = createSignal(false);
 
     // Form states for Booking & Pasien Details
     const [formData, setFormData] = createSignal({
@@ -62,7 +66,18 @@ const BookingPage: Component = () => {
 
     // --- Computed Values (createMemo) ---
     const initialSkinAnalysisTreatment = createMemo(() => {
-        return treatmentList().find(t => t.nama === 'Analisis Kulit Awal & Konsultasi');
+        return treatmentList().find(t => t.name === 'Analisis Kulit Awal & Konsultasi');
+    });
+
+    const filteredPasienList = createMemo(() => {
+        if (!searchQuery()) return [];
+        
+        const query = searchQuery().toLowerCase();
+        return pasienList().filter(pasien => 
+            pasien.nama_lengkap.toLowerCase().includes(query) ||
+            pasien.no_telepon.includes(query) ||
+            (pasien.email && pasien.email.toLowerCase().includes(query))
+        ).slice(0, 10); // Limit to 10 results for performance
     });
 
     const totalAppointmentDuration = createMemo(() => {
@@ -73,7 +88,7 @@ const BookingPage: Component = () => {
         selectedIds.forEach(id => {
             const treatment = treatments.find(t => t.id === id);
             if (treatment) {
-                duration += treatment.estimasi_waktu; // PROPERTI SUDAH BENAR
+                duration += treatment.estimated_time;
             }
         });
 
@@ -81,7 +96,7 @@ const BookingPage: Component = () => {
         const patientRequiresAnalysis = isNewPatient() ||
             (selectedPasienId() && !pasienList().find(p => p.id === selectedPasienId())?.has_initial_skin_analysis);
         if (patientRequiresAnalysis && analysisTreatment && !selectedIds.includes(analysisTreatment.id)) {
-            duration += analysisTreatment.estimasi_waktu; // PROPERTI SUDAH BENAR
+            duration += analysisTreatment.estimated_time;
         }
         return duration;
     });
@@ -97,47 +112,52 @@ const BookingPage: Component = () => {
             setuju_data: true,
         }));
         setSelectedPasienId(null);
+        setSearchQuery('');
+        setShowSearchResults(false);
     };
 
-    const handleExistingPasienSelect = (e: Event) => {
-        const id = (e.target as HTMLSelectElement).value;
-        setSelectedPasienId(id);
+    const handleSearchChange = (e: Event) => {
+        const value = (e.target as HTMLInputElement).value;
+        setSearchQuery(value);
+        setShowSearchResults(value.length > 0);
+        setSelectedPasienId(null);
+    };
 
-        const pasien = pasienList().find(p => p.id === id);
-        if (pasien) {
-            setFormData(prev => {
-                const updatedFormData = {
-                    ...prev,
-                    nama_lengkap: pasien.nama_lengkap,
-                    no_telepon: pasien.no_telepon,
-                    email: pasien.email || '',
-                    tanggal_lahir: pasien.tanggal_lahir || '',
-                    jenis_kelamin: (pasien.jenis_kelamin === 'Wanita' || pasien.jenis_kelamin === 'Pria' ? pasien.jenis_kelamin : 'Wanita') as 'Wanita' | 'Pria',
-                    alamat_lengkap: pasien.alamat_lengkap || '',
-                    riwayat_alergi: pasien.riwayat_alergi || '',
-                    kondisi_medis: pasien.kondisi_medis || '',
-                    obat_konsumsi: pasien.obat_konsumsi || '',
-                    riwayat_treatment: pasien.riwayat_treatment || '',
-                    keluhan_utama: pasien.keluhan_utama || '',
-                    no_identitas: pasien.no_identitas || '',
-                    kontak_darurat_nama: pasien.kontak_darurat_nama || '',
-                    kontak_darurat_hubungan: pasien.kontak_darurat_hubungan || '',
-                    nomer_kontak_darurat: pasien.nomer_kontak_darurat || '',
-                    preferensi_komunikasi: pasien.preferensi_komunikasi || [],
-                    setuju_data: pasien.setuju_data === null ? true : pasien.setuju_data,
-                };
+    const handlePasienSelect = (pasien: Pasien) => {
+        setSelectedPasienId(pasien.id ?? null);
+        setSearchQuery(pasien.nama_lengkap);
+        setShowSearchResults(false);
 
-                if (!pasien.has_initial_skin_analysis && initialSkinAnalysisTreatment()) {
-                    updatedFormData.selectedTreatmentIds = [initialSkinAnalysisTreatment()!.id];
-                } else {
-                    updatedFormData.selectedTreatmentIds = [];
-                }
-                return updatedFormData;
-            });
-            setCurrentStep(2);
-        } else {
-            setCurrentStep(1);
-        }
+        setFormData(prev => {
+            const updatedFormData = {
+                ...prev,
+                nama_lengkap: pasien.nama_lengkap,
+                no_telepon: pasien.no_telepon,
+                email: pasien.email || '',
+                tanggal_lahir: pasien.tanggal_lahir || '',
+                jenis_kelamin: (pasien.jenis_kelamin === 'Wanita' || pasien.jenis_kelamin === 'Pria' ? pasien.jenis_kelamin : 'Wanita') as 'Wanita' | 'Pria',
+                alamat_lengkap: pasien.alamat_lengkap || '',
+                riwayat_alergi: pasien.riwayat_alergi || '',
+                kondisi_medis: pasien.kondisi_medis || '',
+                obat_konsumsi: pasien.obat_konsumsi || '',
+                riwayat_treatment: pasien.riwayat_treatment || '',
+                keluhan_utama: pasien.keluhan_utama || '',
+                no_identitas: pasien.no_identitas || '',
+                kontak_darurat_nama: pasien.kontak_darurat_nama || '',
+                kontak_darurat_hubungan: pasien.kontak_darurat_hubungan || '',
+                nomer_kontak_darurat: pasien.nomer_kontak_darurat || '',
+                preferensi_komunikasi: pasien.preferensi_komunikasi || [],
+                setuju_data: pasien.setuju_data === null ? true : pasien.setuju_data,
+            };
+
+            if (!pasien.has_initial_skin_analysis && initialSkinAnalysisTreatment()) {
+                updatedFormData.selectedTreatmentIds = [initialSkinAnalysisTreatment()!.id];
+            } else {
+                updatedFormData.selectedTreatmentIds = [];
+            }
+            return updatedFormData;
+        });
+        setCurrentStep(2);
     };
 
     const handleFormChange = (key: keyof ReturnType<typeof formData>, value: any) => {
@@ -159,6 +179,10 @@ const BookingPage: Component = () => {
             toast.error('Nama, Nomor Telepon, dan Tanggal Lahir pasien baru wajib diisi.');
             return;
         }
+        if (!isNewPatient() && !selectedPasienId()) {
+            toast.error('Silakan pilih pasien yang sudah ada.');
+            return;
+        }
         setCurrentStep(2);
     };
 
@@ -176,28 +200,28 @@ const BookingPage: Component = () => {
         // STEP 1: Handle Pasien Creation or Selection
         if (isNewPatient()) {
             const newPasienData = {
-                nama_lengkap: formData().nama_lengkap,
-                no_telepon: formData().no_telepon,
-                email: formData().email || null,
-                tanggal_lahir: formData().tanggal_lahir || null,
-                jenis_kelamin: formData().jenis_kelamin || null,
-                alamat_lengkap: formData().alamat_lengkap || null,
-                riwayat_alergi: formData().riwayat_alergi || null,
-                kondisi_medis: formData().kondisi_medis || null,
-                obat_konsumsi: formData().obat_konsumsi || null,
-                riwayat_treatment: formData().riwayat_treatment || null,
-                keluhan_utama: formData().keluhan_utama || null,
-                no_identitas: formData().no_identitas || null,
-                kontak_darurat_nama: formData().kontak_darurat_nama || null,
-                kontak_darurat_hubungan: formData().kontak_darurat_hubungan || null,
-                nomer_kontak_darurat: formData().nomer_kontak_darurat || null,
-                preferensi_komunikasi: formData().preferensi_komunikasi,
-                setuju_data: formData().setuju_data,
-                has_initial_skin_analysis: false,
-            };
+    nama_lengkap: formData().nama_lengkap,
+    no_telepon: formData().no_telepon,
+    email: formData().email || null,
+    tanggal_lahir: formData().tanggal_lahir || null,
+    jenis_kelamin: formData().jenis_kelamin || null,
+    alamat_lengkap: formData().alamat_lengkap || null,
+    riwayat_alergi: formData().riwayat_alergi || null,
+    kondisi_medis: formData().kondisi_medis || null,
+    obat_konsumsi: formData().obat_konsumsi || null,
+    riwayat_treatment: formData().riwayat_treatment || null,
+    keluhan_utama: formData().keluhan_utama || null,
+    no_identitas: formData().no_identitas || null,
+    kontak_darurat_nama: formData().kontak_darurat_nama || null,
+    kontak_darurat_hubungan: formData().kontak_darurat_hubungan || null,
+    nomer_kontak_darurat: formData().nomer_kontak_darurat || null,
+    preferensi_komunikasi: [],
+    setuju_data: !!formData().setuju_data, // pastikan boolean
+    has_initial_skin_analysis: false,
+};
 
             try {
-                const res = await api.post('/pasiens', newPasienData); // <--- Perubahan: Menggunakan api.post
+                const res = await api.post('/pasiens', newPasienData);
                 const createdPasien = res.data;
                 currentPasienId = createdPasien.id;
                 setPasienList(prev => [...prev, createdPasien]);
@@ -232,20 +256,21 @@ const BookingPage: Component = () => {
 
         treatmentsForAppointment = Array.from(new Set(treatmentsForAppointment));
 
-        const newAppointmentData = {
-            pasien_id: currentPasienId,
-            dokter_id: formData().selectedDokterId!,
-            treatment_ids: treatmentsForAppointment,
-            tanggal: formData().tanggal_appointment,
-            waktu: "10:00:00",
-            status: "booked",
-            is_initial_skin_analysis: requiresInitialAnalysis && treatmentsForAppointment.includes(analysisTreatment?.id!),
-            skin_analysis_id: null,
-            treatment_progress_id: null,
-        };
+       const newAppointmentData = {
+    pasien_id: currentPasienId, // UUID dari pasien yang sudah terdaftar
+    dokter_id: formData().selectedDokterId!, // UUID dari dokter yang dipilih
+    treatment_ids: treatmentsForAppointment, // array of UUID string dari treatment yang dipilih
+    tanggal: formData().tanggal_appointment, // format YYYY-MM-DD
+    waktu: "10:00:00", // format HH:MM:SS
+    status: "booked",
+    is_initial_skin_analysis: requiresInitialAnalysis && treatmentsForAppointment.includes(analysisTreatment?.id!),
+    skin_analysis_id: null,
+    treatment_progress_id: null,
+};
+console.log('Payload appointment:', newAppointmentData);
 
         try {
-            const res = await api.post('/appointments', newAppointmentData); // <--- Perubahan: Menggunakan api.post
+            const res = await api.post('/appointments', newAppointmentData);
             const createdAppointment = res.data;
             setAppointmentList(prev => [...prev, createdAppointment]);
             toast.success('Appointment berhasil dibooking!');
@@ -254,9 +279,9 @@ const BookingPage: Component = () => {
             // STEP 3: Update Pasien if needed
             if (requiresInitialAnalysis) {
                 const updatePasienDto = { has_initial_skin_analysis: true };
-                await api.patch(`/pasiens/${currentPasienId}`, updatePasienDto); // <--- Perubahan: Menggunakan api.patch
+                await api.patch(`/pasiens/${currentPasienId}`, updatePasienDto);
                 
-                const pasienRes = await api.get('/pasiens'); // <--- Perubahan: Menggunakan api.get
+                const pasienRes = await api.get('/pasiens');
                 setPasienList(pasienRes.data);
                 console.log('Pasien updated with has_initial_skin_analysis: true');
             }
@@ -272,6 +297,8 @@ const BookingPage: Component = () => {
     const resetForm = () => {
         setIsNewPatient(true);
         setSelectedPasienId(null);
+        setSearchQuery('');
+        setShowSearchResults(false);
         setFormData({
             nama_lengkap: '', no_telepon: '', email: '', tanggal_lahir: '', jenis_kelamin: 'Wanita', no_identitas: '', alamat_lengkap: '',
             riwayat_alergi: '', kondisi_medis: '', obat_konsumsi: '', riwayat_treatment: '', keluhan_utama: '',
@@ -280,8 +307,14 @@ const BookingPage: Component = () => {
         });
         setCurrentStep(1);
     };
+
+    // Close search results when clicking outside
+    const handleClickOutside = () => {
+        setShowSearchResults(false);
+    };
+
    return (
-    <div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4 md:p-6 font-sans">
+    <div class="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4 md:p-6 font-sans" onClick={handleClickOutside}>
         
         <Toaster position="top-right" />
 
@@ -292,7 +325,7 @@ const BookingPage: Component = () => {
         </div>
 
         {/* Main Content Card */}
-        <div class="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 md:p-12">
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 md:p-12" onClick={(e) => e.stopPropagation()}>
             {/* Step Indicators */}
             <div class="flex items-center justify-center mb-12">
                 <div class="flex items-center w-full max-w-md">
@@ -371,26 +404,76 @@ const BookingPage: Component = () => {
                     </div>
                 </div>
 
-                {/* Existing Pasien Select */}
+                {/* Existing Pasien Search */}
                 {!isNewPatient() && (
                     <div class="mb-8 p-6 bg-blue-50 rounded-2xl border border-blue-200">
                         <label class="block text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                            <User size={20} class="text-blue-600" />
-                            Pilih Pasien Lama
+                            <Search size={20} class="text-blue-600" />
+                            Cari Pasien Lama
                         </label>
-                        <select
-                            value={selectedPasienId() || ''}
-                            onInput={handleExistingPasienSelect}
-                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white"
-                            required={!isNewPatient()}
-                        >
-                            <option value="" disabled>-- Pilih Pasien --</option>
-                            {pasienList().map(pasien => (
-                                <option value={pasien.id}>
-                                    {pasien.nama_lengkap} ({pasien.no_telepon})
-                                </option>
-                            ))}
-                        </select>
+                        <div class="relative">
+                            <div class="relative">
+                                <Search size={20} class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery()}
+                                    onInput={handleSearchChange}
+                                    onClick={(e) => e.stopPropagation()}
+                                    class="w-full pl-12 pr-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-white"
+                                    placeholder="Ketik nama, nomor telepon, atau email pasien..."
+                                    required={!isNewPatient()}
+                                />
+                            </div>
+                            
+                            {/* Search Results Dropdown */}
+                            {showSearchResults() && filteredPasienList().length > 0 && (
+                                <div class="absolute z-10 w-full mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                    {filteredPasienList().map(pasien => (
+                                        <div 
+                                            class="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                            onClick={() => handlePasienSelect(pasien)}
+                                        >
+                                            <div class="font-medium text-gray-900">{pasien.nama_lengkap}</div>
+                                            <div class="text-sm text-gray-600 flex items-center gap-4">
+                                                <span class="flex items-center gap-1">
+                                                    <Phone size={14} />
+                                                    {pasien.no_telepon}
+                                                </span>
+                                                {pasien.email && (
+                                                    <span class="flex items-center gap-1">
+                                                        <Mail size={14} />
+                                                        {pasien.email}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {!pasien.has_initial_skin_analysis && (
+                                                <div class="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                                                    <AlertTriangle size={12} />
+                                                    Belum melakukan analisis kulit awal
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            {/* No Results Message */}
+                            {showSearchResults() && searchQuery().length > 0 && filteredPasienList().length === 0 && (
+                                <div class="absolute z-10 w-full mt-2 bg-white border-2 border-gray-300 rounded-xl shadow-lg p-4 text-center text-gray-500">
+                                    Tidak ada pasien yang ditemukan
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Selected Patient Info */}
+                        {selectedPasienId() && (
+                            <div class="mt-4 p-4 bg-white rounded-xl border border-blue-200">
+                                <p class="text-sm font-medium text-gray-700 mb-2">Pasien Terpilih:</p>
+                                <div class="text-base font-semibold text-blue-800">
+                                    {formData().nama_lengkap} - {formData().no_telepon}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -466,22 +549,21 @@ const BookingPage: Component = () => {
                                 />
                             </div>
 
-                            
                             {/* Jenis Kelamin */}
-<div class="space-y-2">
-    <label class="block text-sm font-semibold text-gray-700">
-        Jenis Kelamin <span class="text-red-500">*</span>
-    </label>
-    <select
-        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
-        value={formData().jenis_kelamin}
-        onInput={(e) => handleFormChange('jenis_kelamin', e.target.value)}
-        required={isNewPatient()}
-    >
-        <option value="Wanita">Wanita</option>
-        <option value="Pria">Pria</option>
-    </select>
-</div>
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    Jenis Kelamin <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 hover:border-gray-400"
+                                    value={formData().jenis_kelamin}
+                                    onInput={(e) => handleFormChange('jenis_kelamin', e.target.value)}
+                                    required={isNewPatient()}
+                                >
+                                    <option value="Wanita">Wanita</option>
+                                    <option value="Pria">Pria</option>
+                                </select>
+                            </div>
 
                             {/* No Identitas */}
                             <div class="space-y-2">
@@ -679,15 +761,15 @@ const BookingPage: Component = () => {
                 </div>
 
                 {/* Submit Button */}
-                <div class="flex justify-end pt-6 border-t border-gray-200">
-                    <button
-                        type="submit"
-                        class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-200 flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                        Lanjut ke Booking
-                        <CheckCheck size={20} />
-                    </button>
-                </div>
+<div class="flex justify-end pt-6 border-t border-gray-200">
+    <button
+        type="submit"
+        class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 transition-all duration-300 ease-in-out flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+        Lanjut ke Booking
+        <CheckCheck size={20} />
+    </button>
+</div>
             </form>
 
             {/* --- Step 2: Booking Details --- */}
@@ -762,9 +844,9 @@ const BookingPage: Component = () => {
                                     <option
                                         value={treatment.id}
                                         selected={!!(formData().selectedTreatmentIds.includes(treatment.id) ||
-                                            ((isNewPatient() || (selectedPasienId() && !pasienList().find(p => p.id === selectedPasienId())?.has_initial_skin_analysis)) && treatment.nama === 'Analisis Kulit Awal & Konsultasi'))}
+                                            ((isNewPatient() || (selectedPasienId() && !pasienList().find(p => p.id === selectedPasienId())?.has_initial_skin_analysis)) && treatment.name === 'Analisis Kulit Awal & Konsultasi'))}
                                     >
-                                        {treatment.nama} ({treatment.estimasi_waktu} menit) - {treatment.harga.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
+                                        {treatment.name} ({treatment.estimated_time} menit) - {treatment.price.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}
                                     </option>
                                 ))}
                             </select>
@@ -787,16 +869,17 @@ const BookingPage: Component = () => {
                         Kembali
                     </button>
                     <button
-                        type="submit"
-                        class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
-                    >
-                        Konfirmasi Booking
-                        <CheckCheck size={20} />
-                    </button>
+    type="submit"
+    class="px-8 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-xl shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-300 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 focus:outline-none focus:ring-4 focus:ring-green-300 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+>
+    Konfirmasi Booking
+    <CheckCheck size={20} />
+</button>
                 </div>
             </form>
         </div>
     </div>
 );
 };
+
 export default BookingPage;

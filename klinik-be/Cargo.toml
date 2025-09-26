@@ -1,5 +1,5 @@
 [package]
-name = "klinik_be"
+name = "klinik-be"
 version = "0.1.0"
 edition = "2024"
 

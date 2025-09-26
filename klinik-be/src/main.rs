@@ -12,13 +12,12 @@ use crate::handlers::treatment_handler;
 use crate::handlers::dokter_handler;
 use crate::handlers::pasien_handler;
 use crate::handlers::appointment_handler;
-use crate::middlewares::auth_middleware::AuthMiddleware;
 mod handlers;
 mod dtos;
 mod models;
 mod services;
 mod repositories;
-mod middlewares; 
+mod middlewares;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

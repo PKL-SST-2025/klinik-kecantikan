@@ -19,7 +19,7 @@ pub struct CreatePasienDto {
     pub kontak_darurat_nama: Option<String>,
     pub kontak_darurat_hubungan: Option<String>,
     pub nomer_kontak_darurat: Option<String>,
-    pub preferensi_komunikasi: Value,
+    pub preferensi_komunikasi: Option<Value>,
     pub setuju_data: Option<bool>,
     pub has_initial_skin_analysis: Option<bool>,
 }

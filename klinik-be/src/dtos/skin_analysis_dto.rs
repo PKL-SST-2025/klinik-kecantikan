@@ -9,8 +9,8 @@ pub struct CreateSkinAnalysisDto {
     pub tanggal_analisis: String, // Consider using chrono::NaiveDate
     pub hasil_visual: Option<String>,
     pub hasil_alat: Option<String>,
-    pub rekomendasi_treatment: Value, // JSON array of strings
-    pub rekomendasi_produk: Value, // JSON array of strings
+    pub rekomendasi_treatment: Option<Value>, // JSON array of strings
+    pub rekomendasi_produk: Option<Value>, // JSON array of strings
     pub catatan_tambahan: Option<String>,
 }
 

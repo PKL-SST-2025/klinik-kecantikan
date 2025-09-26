@@ -1,5 +1,5 @@
 import { createSignal, onMount, For, Component, createMemo, Show } from 'solid-js';
-import { Appointment, Pasien, Treatment, Produk, Invoice, InvoiceItem } from '../types/database';
+import { Appointment, Pasien,  Invoice, InvoiceItem, TreatmentFromBackend, ProdukFromBackend } from '../types/database';
 import toast, { Toaster } from 'solid-toast';
 import { ShoppingCart, DollarSign, User, PlusCircle, Trash2, Printer } from 'lucide-solid';
 import dayjs from 'dayjs';
@@ -10,8 +10,8 @@ const CheckoutPage: Component = () => {
     const [invoiceList, setInvoiceList] = createSignal<Invoice[]>([]);
     const [completedAppointments, setCompletedAppointments] = createSignal<Appointment[]>([]);
     const [pasienList, setPasienList] = createSignal<Pasien[]>([]);
-    const [treatmentList, setTreatmentList] = createSignal<Treatment[]>([]);
-    const [productList, setProductList] = createSignal<Produk[]>([]);
+    const [treatmentList, setTreatmentList] = createSignal<TreatmentFromBackend[]>([]);
+    const [productList, setProductList] = createSignal<ProdukFromBackend[]>([]);
     const [loading, setLoading] = createSignal(false);
     
     const [activeInvoice, setActiveInvoice] = createSignal<Partial<Invoice> | null>(null);
@@ -26,7 +26,7 @@ const CheckoutPage: Component = () => {
                 api.get('/appointments', { params: { status: 'completed' } }), // Filter appointments by status
                 api.get('/pasiens'),
                 api.get('/treatments'),
-                api.get('/produks'),
+                api.get('/products'),
             ]);
             setInvoiceList(invoicesRes.data);
             setCompletedAppointments(appointmentsRes.data);
@@ -55,10 +55,10 @@ const CheckoutPage: Component = () => {
         const invoiceItems: InvoiceItem[] = treatments.map(t => ({
             type: 'treatment',
             item_id: t.id,
-            name: t.nama,
+            name: t.name,
             quantity: 1,
-            price_per_unit: t.harga,
-            subtotal: t.harga,
+            price_per_unit: t.price,
+            subtotal: t.price,
         }));
         
         setActiveInvoice({
@@ -79,10 +79,10 @@ const CheckoutPage: Component = () => {
             const newItem: InvoiceItem = {
                 type: 'product',
                 item_id: product.id,
-                name: product.nama,
+                name: product.name,
                 quantity: 1,
-                price_per_unit: product.harga,
-                subtotal: product.harga,
+                price_per_unit: product.price,
+                subtotal: product.price,
             };
             setActiveInvoice(prev => ({ ...prev, items: [...(prev?.items || []), newItem] }));
         }
@@ -251,7 +251,7 @@ const CheckoutPage: Component = () => {
                                 <For each={productList()}>
                                     {(product) => (
                                         <option value={product.id}>
-                                            {product.nama} - Rp {product.harga.toLocaleString('id-ID')}
+                                            {product.name} - Rp {product.price.toLocaleString('id-ID')}
                                         </option>
                                     )}
                                 </For>
